@@ -9,9 +9,40 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkoutRouteImport } from './routes/workout'
+import { Route as RanksRouteImport } from './routes/ranks'
+import { Route as ProgressRouteImport } from './routes/progress'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WorkoutLogRouteImport } from './routes/workout.log'
 
+const WorkoutRoute = WorkoutRouteImport.update({
+  id: '/workout',
+  path: '/workout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RanksRoute = RanksRouteImport.update({
+  id: '/ranks',
+  path: '/ranks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProgressRoute = ProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -22,35 +53,123 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkoutLogRoute = WorkoutLogRouteImport.update({
+  id: '/log',
+  path: '/log',
+  getParentRoute: () => WorkoutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/profile': typeof ProfileRoute
+  '/progress': typeof ProgressRoute
+  '/ranks': typeof RanksRoute
+  '/workout': typeof WorkoutRouteWithChildren
+  '/workout/log': typeof WorkoutLogRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/profile': typeof ProfileRoute
+  '/progress': typeof ProgressRoute
+  '/ranks': typeof RanksRoute
+  '/workout': typeof WorkoutRouteWithChildren
+  '/workout/log': typeof WorkoutLogRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/profile': typeof ProfileRoute
+  '/progress': typeof ProgressRoute
+  '/ranks': typeof RanksRoute
+  '/workout': typeof WorkoutRouteWithChildren
+  '/workout/log': typeof WorkoutLogRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/leaderboard'
+    | '/profile'
+    | '/progress'
+    | '/ranks'
+    | '/workout'
+    | '/workout/log'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth'
-  id: '__root__' | '/' | '/auth'
+  to:
+    | '/'
+    | '/auth'
+    | '/leaderboard'
+    | '/profile'
+    | '/progress'
+    | '/ranks'
+    | '/workout'
+    | '/workout/log'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/leaderboard'
+    | '/profile'
+    | '/progress'
+    | '/ranks'
+    | '/workout'
+    | '/workout/log'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  LeaderboardRoute: typeof LeaderboardRoute
+  ProfileRoute: typeof ProfileRoute
+  ProgressRoute: typeof ProgressRoute
+  RanksRoute: typeof RanksRoute
+  WorkoutRoute: typeof WorkoutRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workout': {
+      id: '/workout'
+      path: '/workout'
+      fullPath: '/workout'
+      preLoaderRoute: typeof WorkoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranks': {
+      id: '/ranks'
+      path: '/ranks'
+      fullPath: '/ranks'
+      preLoaderRoute: typeof RanksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/progress': {
+      id: '/progress'
+      path: '/progress'
+      fullPath: '/progress'
+      preLoaderRoute: typeof ProgressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -65,12 +184,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workout/log': {
+      id: '/workout/log'
+      path: '/log'
+      fullPath: '/workout/log'
+      preLoaderRoute: typeof WorkoutLogRouteImport
+      parentRoute: typeof WorkoutRoute
+    }
   }
 }
+
+interface WorkoutRouteChildren {
+  WorkoutLogRoute: typeof WorkoutLogRoute
+}
+
+const WorkoutRouteChildren: WorkoutRouteChildren = {
+  WorkoutLogRoute: WorkoutLogRoute,
+}
+
+const WorkoutRouteWithChildren =
+  WorkoutRoute._addFileChildren(WorkoutRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  LeaderboardRoute: LeaderboardRoute,
+  ProfileRoute: ProfileRoute,
+  ProgressRoute: ProgressRoute,
+  RanksRoute: RanksRoute,
+  WorkoutRoute: WorkoutRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
