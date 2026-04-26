@@ -1,71 +1,19 @@
-## Redesign the Login Page (`/auth`)
+## Fix login page hero & logo
 
-Rebuild the auth screen to match the uploaded mockup pixel-for-pixel — cinematic anime hero up top with a smooth 3-image crossfade, KR logo + KAIROS wordmark, glassy login card, and the TRACK / ACHIEVE / EVOLVE footer.
+Three small tweaks to make the auth screen match the mockup exactly.
 
-### What you'll see
+### Changes
 
-```text
-┌─────────────────────────┐
-│   [Anime hero — fades   │
-│    between 3 images,    │
-│    5s each, dark+red    │
-│    overlay for legibility]
-│                         │
-│        [KR LOGO]        │  ← red glow pulse
-│         KAIROS          │  ← wide tracking, glow
-│  Discipline meets timing.│  ← red, underline accent
-│                         │
-│  ╭──── glass card ────╮ │
-│  │   WELCOME BACK     │ │
-│  │ Sign in to continue│ │
-│  │                    │ │
-│  │ EMAIL              │ │
-│  │ [✉  enter email  ] │ │  ← red glow on focus
-│  │                    │ │
-│  │ PASSWORD           │ │
-│  │ [🔒 enter pwd  👁 ]│ │
-│  │       Forgot Password? │
-│  │                    │ │
-│  │ ┌──── LOGIN  →───┐ │ │  ← red, glowing
-│  │ ───── OR ──────    │ │
-│  │ ┌─ + CREATE ACCT ─┐│ │  ← outlined red
-│  ╰────────────────────╯ │
-│                         │
-│  🏋 TRACK  🏆 ACHIEVE  🔥 EVOLVE │
-└─────────────────────────┘
-```
+1. **Push the hero photos toward the top.** Currently the image fills the whole screen and is darkened heavily. Switch it to occupy only the top ~70% of the screen, anchored to the top (`object-top`), with a solid `--background` fill underneath. This matches the mockup where the photo dominates the upper portion and the lower portion is pure dark.
 
-### Hero crossfade
-- Three full-width anime portraits (the Ren-style images you uploaded) stacked absolutely.
-- Each is visible for 5 seconds with a ~1s fade transition between them, looping.
-- Dark gradient + slight blur overlay sits above them so the brand and form stay readable.
-- The KR logo + KAIROS wordmark + tagline sit centered over the hero.
+2. **Lighten the overlay.** Replace the heavy radial darkening with a much softer top-to-bottom gradient so the anime art reads clearly at the top, and only fades to dark where the login card begins.
 
-### Login card
-- `#1A1D23` at ~85% opacity with `backdrop-blur` and rounded 16px corners.
-- Inputs: dark fill, subtle border, leading icon (envelope/lock), red glow ring on focus, eye toggle for password.
-- "Forgot Password?" small link, right-aligned, gray → red on tap.
-- LOGIN: full-width red button with arrow icon, glow shadow, scale-down + glow pulse on press.
-- Divider with "OR" centered.
-- CREATE ACCOUNT: outlined red, transparent, user-plus icon. Toggles the form into signup mode (uses existing Supabase signup flow).
+3. **Make the KR logo 50% larger.** Bump from `h-24 w-24` (96px) to `h-36 w-36` (144px).
 
-### Footer brand strip
-- Three small red icons + labels: Dumbbell / TRACK · Trophy / ACHIEVE · Flame / EVOLVE.
-- Subtle red glow, minimal spacing, sits below the card.
+4. **Kill the square glow.** The square came from the logo PNG having a white background; the red `drop-shadow` was rendering around the white bounding box. Regenerate `src/assets/kr-logo.png` from the source with the white background removed (transparency + trim) so the drop-shadow hugs the actual KR shape.
 
-### Animations
-- Page fade-in on mount.
-- Card slides up ~12px with fade on mount.
-- Hero crossfade loop (5s hold + 1s fade).
-- Input focus: red glow ring transition.
-- Button press: scale 0.97 + glow pulse (already in design system).
+### Files touched
+- `src/assets/kr-logo.png` — re-export with transparent background, trimmed.
+- `src/routes/auth.tsx` — hero positioning, overlay, logo size.
 
-### Technical notes
-- Files added: `src/assets/hero-1.png`, `src/assets/hero-2.png`, `src/assets/hero-3.png` (the three uploaded portraits).
-- File rewritten: `src/routes/auth.tsx` — keeps the existing Supabase email/password sign-in + sign-up logic, just reskins the UI and adds the hero carousel + signup toggle.
-- New small component inline: `HeroCarousel` using a `useEffect` interval and CSS opacity transitions (no extra deps).
-- KAIROS wordmark: rendered as text with wide letter-spacing and a subtle text-shadow glow (matches mockup; no new font needed).
-- KR logo: reuse `/icon-512.png` (the logo you set as the favicon) with a red drop-shadow glow.
-- All colors via existing tokens in `src/styles.css` (`--primary`, `--card`, `--background`, `--muted-foreground`).
-- Mobile-only: stays inside the `max-w-md` mobile shell, no desktop layout work.
-- No DB or schema changes. No new dependencies.
+No other behavior or layout changes.
