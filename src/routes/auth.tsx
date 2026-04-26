@@ -1,25 +1,79 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MobileShell } from "@/components/mobile-shell";
 import { toast } from "sonner";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  UserPlus,
+  Dumbbell,
+  Trophy,
+  Flame,
+} from "lucide-react";
+import hero1 from "@/assets/hero-1.png";
+import hero2 from "@/assets/hero-2.png";
+import hero3 from "@/assets/hero-3.png";
+import krLogo from "@/assets/kr-logo.png";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — KAIROS" },
-      { name: "description", content: "Sign in or create your KAIROS account." },
+      { name: "description", content: "Discipline meets timing. Sign in to KAIROS." },
     ],
   }),
   component: AuthPage,
 });
 
+const HEROES = [hero1, hero2, hero3];
+
+function HeroCarousel() {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIdx((i) => (i + 1) % HEROES.length), 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {HEROES.map((src, i) => (
+        <img
+          key={src}
+          src={src}
+          alt=""
+          aria-hidden
+          className="animate-ken-burns absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-[1200ms] ease-in-out"
+          style={{ opacity: i === idx ? 1 : 0 }}
+        />
+      ))}
+      {/* Dark + red tonal overlay for legibility */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 35%, rgba(15,17,21,0.15) 0%, rgba(15,17,21,0.55) 55%, rgba(15,17,21,0.95) 100%)",
+        }}
+      />
+      <div
+        className="absolute inset-x-0 bottom-0 h-2/3"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(15,17,21,0) 0%, rgba(15,17,21,0.85) 55%, #0F1115 100%)",
+        }}
+      />
+    </div>
+  );
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -32,7 +86,7 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
-            data: { username: username || email.split("@")[0] },
+            data: { username: email.split("@")[0] },
           },
         });
         if (error) throw error;
@@ -51,90 +105,187 @@ function AuthPage() {
     }
   };
 
+  const forgot = async () => {
+    if (!email) {
+      toast.error("Enter your email first.");
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+    if (error) toast.error(error.message);
+    else toast.success("Reset link sent if the email exists.");
+  };
+
   return (
-    <MobileShell hideNav>
-      <div className="flex min-h-[80vh] flex-col justify-center">
-        <div className="mb-10 text-center">
-          <div className="text-primary mx-auto mb-4 inline-block text-5xl font-black tracking-tight drop-shadow-[0_0_18px_var(--primary-glow)]">
+    <div className="bg-background relative mx-auto min-h-screen w-full max-w-md overflow-hidden">
+      {/* Background hero */}
+      <HeroCarousel />
+
+      {/* Foreground content */}
+      <div className="animate-fade-up relative z-10 flex min-h-screen flex-col px-5 pb-6 pt-10">
+        {/* Branding */}
+        <div className="flex flex-col items-center pt-6 text-center">
+          <img
+            src={krLogo}
+            alt="KAIROS"
+            className="animate-glow h-24 w-24 object-contain drop-shadow-[0_0_24px_rgba(194,59,59,0.65)]"
+          />
+          <h1
+            className="mt-3 text-[34px] font-light text-foreground"
+            style={{
+              letterSpacing: "0.32em",
+              textShadow:
+                "0 0 14px rgba(255,255,255,0.25), 0 0 28px rgba(194,59,59,0.18)",
+            }}
+          >
             KAIROS
+          </h1>
+          <div className="mt-2 flex flex-col items-center">
+            <p
+              className="text-primary text-[11px] font-medium uppercase"
+              style={{ letterSpacing: "0.34em" }}
+            >
+              Discipline meets timing.
+            </p>
+            <span className="bg-primary mt-2 h-[2px] w-10 rounded-full opacity-80" />
           </div>
-          <p className="text-sm text-muted-foreground">Train. Level up. Become relentless.</p>
         </div>
 
-        <div className="bg-card rounded-2xl border border-border p-5 shadow-card">
-          <div className="mb-5 flex rounded-lg bg-secondary p-1">
-            {(["signin", "signup"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMode(m)}
-                className={`press flex-1 rounded-md py-2 text-sm font-semibold transition ${
-                  mode === m
-                    ? "bg-card text-foreground shadow"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {m === "signin" ? "Sign in" : "Sign up"}
-              </button>
-            ))}
-          </div>
+        {/* Card */}
+        <div
+          className="animate-slide-up-fade mt-8 rounded-2xl border border-white/5 p-6 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)] backdrop-blur-xl"
+          style={{ backgroundColor: "rgba(26, 29, 35, 0.82)" }}
+        >
+          <h2 className="text-center text-xl font-bold uppercase tracking-[0.18em] text-foreground">
+            {mode === "signin" ? "Welcome Back" : "Join Kairos"}
+          </h2>
+          <p className="text-muted-foreground mt-1.5 text-center text-sm">
+            {mode === "signin"
+              ? "Sign in to continue your journey."
+              : "Create your account to begin."}
+          </p>
 
-          <form onSubmit={submit} className="space-y-3">
-            {mode === "signup" && (
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Username
-                </label>
-                <input
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="warrior_01"
-                  className="bg-input w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-primary/40 focus:ring-2"
-                />
-              </div>
-            )}
+          <form onSubmit={submit} className="mt-5 space-y-4">
+            {/* Email */}
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              <label
+                className="text-muted-foreground mb-2 block text-[11px] font-semibold uppercase"
+                style={{ letterSpacing: "0.18em" }}
+              >
                 Email
               </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="bg-input w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-primary/40 focus:ring-2"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="bg-input w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-primary/40 focus:ring-2"
-              />
+              <div className="group focus-within:border-primary/70 focus-within:shadow-[0_0_0_3px_rgba(194,59,59,0.18),0_0_18px_-2px_rgba(194,59,59,0.45)] flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 px-3.5 py-3 transition-all">
+                <Mail className="text-muted-foreground group-focus-within:text-primary h-4 w-4 transition-colors" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="text-foreground placeholder:text-muted-foreground/70 w-full bg-transparent text-sm outline-none"
+                />
+              </div>
             </div>
 
+            {/* Password */}
+            <div>
+              <label
+                className="text-muted-foreground mb-2 block text-[11px] font-semibold uppercase"
+                style={{ letterSpacing: "0.18em" }}
+              >
+                Password
+              </label>
+              <div className="group focus-within:border-primary/70 focus-within:shadow-[0_0_0_3px_rgba(194,59,59,0.18),0_0_18px_-2px_rgba(194,59,59,0.45)] flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 px-3.5 py-3 transition-all">
+                <Lock className="text-muted-foreground group-focus-within:text-primary h-4 w-4 transition-colors" />
+                <input
+                  type={showPwd ? "text" : "password"}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="text-foreground placeholder:text-muted-foreground/70 w-full bg-transparent text-sm outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((v) => !v)}
+                  className="text-muted-foreground hover:text-primary press transition-colors"
+                  aria-label={showPwd ? "Hide password" : "Show password"}
+                >
+                  {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {mode === "signin" && (
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={forgot}
+                    className="text-muted-foreground hover:text-primary active:text-primary text-xs font-medium underline-offset-4 transition-colors hover:underline"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Primary button */}
             <button
               type="submit"
               disabled={loading}
-              className="press bg-primary text-primary-foreground shadow-glow mt-2 w-full rounded-xl py-3 text-sm font-bold uppercase tracking-wider disabled:opacity-60"
+              className="press bg-primary text-primary-foreground relative mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold uppercase tracking-[0.22em] shadow-[0_0_28px_-4px_rgba(194,59,59,0.85),inset_0_0_0_1px_rgba(255,255,255,0.06)] transition-shadow disabled:opacity-60"
             >
-              {loading ? "..." : mode === "signin" ? "Enter" : "Create account"}
+              <span>{loading ? "..." : mode === "signin" ? "Login" : "Create"}</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 pt-1">
+              <div className="h-px flex-1 bg-white/10" />
+              <span className="text-muted-foreground text-[11px] tracking-[0.3em]">OR</span>
+              <div className="h-px flex-1 bg-white/10" />
+            </div>
+
+            {/* Secondary button */}
+            <button
+              type="button"
+              onClick={() => setMode((m) => (m === "signin" ? "signup" : "signin"))}
+              className="press border-primary/70 text-foreground hover:bg-primary/10 flex w-full items-center justify-center gap-2.5 rounded-xl border bg-transparent py-3 text-sm font-bold uppercase tracking-[0.18em] transition-colors"
+            >
+              <UserPlus className="text-primary h-4 w-4" />
+              <span>{mode === "signin" ? "Create Account" : "Back to Sign In"}</span>
             </button>
           </form>
         </div>
 
-        <Link to="/" className="mt-6 text-center text-xs text-muted-foreground underline">
-          Back
-        </Link>
+        {/* Footer brand strip */}
+        <div className="mt-auto grid grid-cols-3 gap-2 pt-8">
+          {[
+            { Icon: Dumbbell, label: "TRACK" },
+            { Icon: Trophy, label: "ACHIEVE" },
+            { Icon: Flame, label: "EVOLVE" },
+          ].map(({ Icon, label }, i) => (
+            <div
+              key={label}
+              className="flex flex-col items-center gap-2 border-white/5 py-1"
+              style={{
+                borderLeftWidth: i === 0 ? 0 : 1,
+              }}
+            >
+              <Icon
+                className="text-primary h-6 w-6"
+                style={{ filter: "drop-shadow(0 0 8px rgba(194,59,59,0.55))" }}
+              />
+              <span
+                className="text-foreground/85 text-[10px] font-semibold"
+                style={{ letterSpacing: "0.28em" }}
+              >
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
-    </MobileShell>
+    </div>
   );
 }
