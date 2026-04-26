@@ -45,25 +45,20 @@ function HeroCarousel() {
           src={src}
           alt=""
           aria-hidden
-          className="animate-ken-burns absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-[1200ms] ease-in-out"
+          className="animate-ken-burns absolute inset-x-0 top-0 h-[72%] w-full object-cover object-top transition-opacity duration-[1200ms] ease-in-out"
           style={{ opacity: i === idx ? 1 : 0 }}
         />
       ))}
-      {/* Dark + red tonal overlay for legibility */}
+      {/* Soft top-to-bottom fade — keeps art bright at top, dark at card */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-x-0 top-0 h-[72%]"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 35%, rgba(15,17,21,0.15) 0%, rgba(15,17,21,0.55) 55%, rgba(15,17,21,0.95) 100%)",
+            "linear-gradient(to bottom, rgba(15,17,21,0.15) 0%, rgba(15,17,21,0) 28%, rgba(15,17,21,0.25) 65%, rgba(15,17,21,0.9) 100%)",
         }}
       />
-      <div
-        className="absolute inset-x-0 bottom-0 h-2/3"
-        style={{
-          background:
-            "linear-gradient(to bottom, rgba(15,17,21,0) 0%, rgba(15,17,21,0.85) 55%, #0F1115 100%)",
-        }}
-      />
+      {/* Solid background fill below the photo */}
+      <div className="bg-background absolute inset-x-0 bottom-0 top-[68%]" />
     </div>
   );
 }
@@ -129,7 +124,7 @@ function AuthPage() {
           <img
             src={krLogo}
             alt="KAIROS"
-            className="animate-glow h-24 w-24 object-contain drop-shadow-[0_0_24px_rgba(194,59,59,0.65)]"
+            className="animate-glow h-36 w-36 object-contain drop-shadow-[0_0_28px_rgba(194,59,59,0.7)]"
           />
           <h1
             className="mt-3 text-[34px] font-light text-foreground"
