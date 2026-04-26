@@ -124,7 +124,7 @@ function AuthPage() {
           <img
             src={krLogo}
             alt="KAIROS"
-            className="animate-glow h-24 w-24 object-contain drop-shadow-[0_0_24px_rgba(194,59,59,0.65)]"
+            className="animate-glow h-36 w-36 object-contain drop-shadow-[0_0_28px_rgba(194,59,59,0.7)]"
           />
           <h1
             className="mt-3 text-[34px] font-light text-foreground"
