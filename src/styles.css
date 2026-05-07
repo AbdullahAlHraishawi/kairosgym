@@ -45,6 +45,11 @@
 
   --shadow-glow: 0 0 24px -4px var(--primary-glow);
   --shadow-card: 0 4px 24px -8px oklch(0 0 0 / 0.4);
+  --shadow-card-deep: 0 18px 40px -18px oklch(0 0 0 / 0.7), 0 2px 0 0 oklch(1 0 0 / 0.04) inset, 0 -1px 0 0 oklch(0 0 0 / 0.4) inset;
+  --shadow-edge-red: 0 0 0 1px oklch(0.58 0.19 25 / 0.18), 0 0 24px -6px oklch(0.58 0.22 25 / 0.35);
+  --gradient-card: linear-gradient(180deg, oklch(0.27 0.012 260) 0%, oklch(0.21 0.008 260) 100%);
+  --gradient-level: radial-gradient(120% 80% at 100% 0%, oklch(0.58 0.22 25 / 0.28), transparent 60%), linear-gradient(180deg, oklch(0.28 0.02 25) 0%, oklch(0.2 0.01 260) 100%);
+  --gradient-metallic: linear-gradient(180deg, oklch(0.95 0.02 90) 0%, oklch(0.78 0.12 60) 50%, oklch(0.55 0.15 30) 100%);
 }
 
 :root {
@@ -197,4 +202,97 @@
 /* Glow utility */
 .shadow-glow {
   box-shadow: 0 0 24px -4px var(--primary-glow);
+}
+
+/* ======= Cinematic card system ======= */
+@keyframes light-sweep {
+  0%   { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+  20%  { opacity: 0.5; }
+  60%  { opacity: 0.5; }
+  100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+}
+@keyframes ember-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px oklch(0.58 0.19 25 / 0.18), 0 0 28px -6px oklch(0.58 0.22 25 / 0.35); }
+  50%      { box-shadow: 0 0 0 1px oklch(0.58 0.19 25 / 0.32), 0 0 44px -4px oklch(0.58 0.22 25 / 0.6); }
+}
+
+.card-premium {
+  background: var(--gradient-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card-deep);
+  position: relative;
+}
+.card-premium::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, oklch(1 0 0 / 0.05), transparent 35%);
+}
+
+.card-cinematic {
+  background: var(--gradient-level);
+  border: 1px solid oklch(0.58 0.19 25 / 0.25);
+  box-shadow: var(--shadow-card-deep), 0 0 32px -8px oklch(0.58 0.22 25 / 0.35);
+  position: relative;
+  overflow: hidden;
+}
+.card-cinematic::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.06), transparent);
+  pointer-events: none;
+  animation: light-sweep 7s ease-in-out infinite;
+}
+
+.edge-red { box-shadow: var(--shadow-edge-red); }
+.animate-ember { animation: ember-pulse 3s ease-in-out infinite; }
+
+.text-display {
+  font-feature-settings: "ss01", "tnum";
+  letter-spacing: -0.04em;
+}
+
+.metallic-emblem {
+  filter: drop-shadow(0 2px 4px oklch(0 0 0 / 0.6)) drop-shadow(0 0 10px oklch(0.58 0.22 25 / 0.35));
+}
+
+/* Premium XP bar */
+.xp-bar-premium {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, oklch(0.16 0.005 260), oklch(0.22 0.008 260));
+  box-shadow: inset 0 2px 4px oklch(0 0 0 / 0.6), inset 0 -1px 0 oklch(1 0 0 / 0.04);
+  overflow: hidden;
+}
+.xp-bar-premium > .fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, oklch(0.5 0.18 25), oklch(0.68 0.2 30));
+  box-shadow: 0 0 14px oklch(0.58 0.22 25 / 0.7), inset 0 1px 0 oklch(1 0 0 / 0.25);
+  position: relative;
+  overflow: hidden;
+}
+.xp-bar-premium > .fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.35), transparent);
+  transform: translateX(-100%);
+  animation: light-sweep 2.8s ease-in-out infinite;
+}
+
+/* Global cinematic vignette layer */
+.app-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(60% 40% at 90% 0%, oklch(0.58 0.22 25 / 0.1), transparent 70%),
+    radial-gradient(80% 60% at 10% 100%, oklch(0.3 0.05 260 / 0.18), transparent 70%);
 }

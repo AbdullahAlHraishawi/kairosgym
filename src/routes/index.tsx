@@ -1,13 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Flame, Dumbbell, TrendingUp, Lock, Trophy, Zap, Shield, Crown, Swords } from "lucide-react";
+import { Flame, Dumbbell, TrendingUp, Lock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MobileShell } from "@/components/mobile-shell";
 import { Avatar } from "@/components/avatar";
 import { XpBar } from "@/components/xp-bar";
+import { AtmoCard } from "@/components/atmo-card";
+import { BadgeEmblem } from "@/components/badge-emblem";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress, titleForLevel } from "@/lib/xp";
 import { supabase } from "@/integrations/supabase/client";
+import atmoWarrior from "@/assets/atmo-warrior.png";
+import atmoCrowd from "@/assets/atmo-crowd.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,15 +26,6 @@ export const Route = createFileRoute("/")({
   }),
   component: HomePage,
 });
-
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  flame: Flame,
-  zap: Zap,
-  shield: Shield,
-  crown: Crown,
-  sword: Swords,
-  trophy: Trophy,
-};
 
 interface AchPreview {
   code: string;
@@ -109,7 +104,7 @@ function HomePage() {
   }
 
   const lp = levelProgress(profile.total_xp);
-  const dailyTarget = 1; // 1 workout/day
+  const dailyTarget = 1;
   const todayProgress = Math.min(1, todayCount / dailyTarget);
 
   return (
@@ -128,26 +123,37 @@ function HomePage() {
             <div className="text-[11px] text-muted-foreground">Today is your day.</div>
           </div>
         </Link>
-        <div className="bg-card flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5">
+        <div className="bg-card flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 edge-red">
           <Flame className="text-primary animate-flame h-4 w-4" />
-          <span className="text-sm font-bold">{profile.streak}</span>
+          <span className="text-sm font-bold text-display">{profile.streak}</span>
           <span className="text-[11px] text-muted-foreground">day</span>
         </div>
       </div>
 
+      <div
+        className="mt-5 h-px w-full"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, oklch(0.58 0.19 25 / 0.4), transparent)",
+        }}
+      />
+
       {/* Level Card */}
-      <section className="animate-fade-up mt-6">
-        <div className="bg-card relative overflow-hidden rounded-2xl border border-border p-5 shadow-card">
-          <div
-            className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full opacity-30"
-            style={{ background: "radial-gradient(circle, var(--primary-glow), transparent 70%)" }}
-          />
+      <section className="animate-fade-up mt-5">
+        <AtmoCard
+          variant="cinematic"
+          image={atmoWarrior}
+          imageOpacity={0.16}
+          imagePosition="center top"
+          glow
+          className="p-5"
+        >
           <div className="flex items-start justify-between">
             <div>
               <div className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
                 Level
               </div>
-              <div className="text-foreground text-6xl font-black leading-none tabular-nums">
+              <div className="text-foreground text-display text-7xl font-black leading-none tabular-nums">
                 {lp.level}
               </div>
               <div className="text-primary mt-1 text-sm font-bold uppercase tracking-wider">
@@ -155,7 +161,7 @@ function HomePage() {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-foreground text-2xl font-bold tabular-nums">
+              <div className="text-foreground text-display text-2xl font-bold tabular-nums">
                 {profile.total_xp.toLocaleString()}
               </div>
               <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -163,14 +169,14 @@ function HomePage() {
               </div>
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-5">
             <XpBar progress={lp.progress} animateKey={profile.total_xp} />
             <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-              <span>{lp.xpInLevel} / {lp.span} XP</span>
-              <span>Next: {lp.xpForNext} XP</span>
+              <span className="text-display">{lp.xpInLevel} / {lp.span} XP</span>
+              <span className="text-display">Next: {lp.xpForNext} XP</span>
             </div>
           </div>
-        </div>
+        </AtmoCard>
       </section>
 
       {/* CTA */}
@@ -188,11 +194,11 @@ function HomePage() {
           <h2 className="text-foreground text-sm font-bold uppercase tracking-wider">
             Today's Progress
           </h2>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground text-display">
             {todayCount}/{dailyTarget} workout
           </span>
         </div>
-        <XpBar progress={todayProgress} showGlow={todayProgress > 0} animateKey={todayCount} />
+        <XpBar progress={todayProgress} animateKey={todayCount} />
       </section>
 
       {/* Stats */}
@@ -213,28 +219,25 @@ function HomePage() {
           </Link>
         </div>
         <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5">
-          {achievements.map((a) => {
-            const Icon = ICONS[a.icon] ?? Trophy;
-            return (
-              <div
-                key={a.code}
-                className={`bg-card relative flex w-24 shrink-0 flex-col items-center gap-2 rounded-xl border border-border p-3 ${
-                  a.unlocked ? "shadow-glow" : "opacity-60"
-                }`}
-              >
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                    a.unlocked ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  {a.unlocked ? <Icon className="h-5 w-5" /> : <Lock className="h-4 w-4" />}
+          {achievements.map((a) => (
+            <div
+              key={a.code}
+              className={`card-premium relative flex w-24 shrink-0 flex-col items-center gap-2 rounded-xl p-3 ${
+                a.unlocked ? "edge-red" : "opacity-70"
+              }`}
+            >
+              {a.unlocked ? (
+                <BadgeEmblem icon={a.icon} size={48} />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                  <Lock className="h-4 w-4" />
                 </div>
-                <div className="text-center text-[11px] font-medium leading-tight">
-                  {a.name}
-                </div>
+              )}
+              <div className="text-center text-[11px] font-medium leading-tight">
+                {a.name}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -248,27 +251,40 @@ function HomePage() {
             See all
           </Link>
         </div>
-        <div className="bg-card divide-y divide-border overflow-hidden rounded-2xl border border-border">
-          {MOCK_LEADERS.map((u) => (
-            <div key={u.rank} className="flex items-center gap-3 px-4 py-3">
+        <AtmoCard image={atmoCrowd} imageOpacity={0.12} className="overflow-hidden">
+          <div className="divide-y divide-border/60">
+            {MOCK_LEADERS.map((u) => (
               <div
-                className={`text-sm font-black w-5 text-center ${
-                  u.rank === 1 ? "text-primary" : "text-muted-foreground"
+                key={u.rank}
+                className={`flex items-center gap-3 px-4 py-3 ${
+                  u.rank === 1
+                    ? "bg-gradient-to-r from-primary/15 to-transparent"
+                    : ""
                 }`}
               >
-                {u.rank}
+                <div
+                  className={`text-display w-5 text-center text-base font-black ${
+                    u.rank === 1 ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  {u.rank}
+                </div>
+                <Avatar
+                  seed={u.seed}
+                  size={36}
+                  className={u.rank === 1 ? "ring-2 ring-primary/60 shadow-glow" : ""}
+                />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold">{u.username}</div>
+                  <div className="text-[11px] text-muted-foreground">Lv {u.level}</div>
+                </div>
+                <div className="text-primary text-display text-sm font-bold tabular-nums">
+                  {u.xp.toLocaleString()} XP
+                </div>
               </div>
-              <Avatar seed={u.seed} size={36} />
-              <div className="flex-1">
-                <div className="text-sm font-semibold">{u.username}</div>
-                <div className="text-[11px] text-muted-foreground">Lv {u.level}</div>
-              </div>
-              <div className="text-primary text-sm font-bold tabular-nums">
-                {u.xp.toLocaleString()} XP
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </AtmoCard>
       </section>
     </MobileShell>
   );
@@ -286,9 +302,9 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className="bg-card rounded-xl border border-border p-3">
+    <div className={`card-premium rounded-xl p-3 ${accent ? "edge-red" : ""}`}>
       <div
-        className={`text-xl font-bold tabular-nums ${accent ? "text-primary" : "text-foreground"}`}
+        className={`text-display text-xl font-bold tabular-nums ${accent ? "text-primary" : "text-foreground"}`}
       >
         {value.toLocaleString()}
         {suffix && <span className="text-xs text-muted-foreground"> {suffix}</span>}

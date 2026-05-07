@@ -9,20 +9,19 @@ import {
   History,
   Users,
   Lock,
-  Flame,
-  Zap,
-  Shield,
-  Crown,
-  Swords,
 } from "lucide-react";
 import { MobileShell } from "@/components/mobile-shell";
 import { Avatar } from "@/components/avatar";
 import { XpBar } from "@/components/xp-bar";
+import { AtmoCard } from "@/components/atmo-card";
+import { BadgeEmblem } from "@/components/badge-emblem";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress, titleForLevel } from "@/lib/xp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import atmoBlade from "@/assets/atmo-blade.png";
+import atmoWarrior from "@/assets/atmo-warrior.png";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -33,15 +32,6 @@ export const Route = createFileRoute("/profile")({
   }),
   component: ProfilePage,
 });
-
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  flame: Flame,
-  zap: Zap,
-  shield: Shield,
-  crown: Crown,
-  sword: Swords,
-  trophy: Trophy,
-};
 
 function ProfilePage() {
   const navigate = useNavigate();
@@ -97,23 +87,36 @@ function ProfilePage() {
   return (
     <MobileShell>
       {/* Header */}
-      <div className="animate-fade-up flex flex-col items-center text-center">
-        <Avatar seed={profile.avatar_seed} size={96} className="ring-4 ring-primary/40 shadow-glow" />
-        <div className="mt-3 text-xl font-black">{profile.username}</div>
-        <div className="text-primary text-xs font-bold uppercase tracking-[0.3em]">
-          The {titleForLevel(lp.level)}
+      <AtmoCard
+        image={atmoBlade}
+        imageOpacity={0.12}
+        className="p-6"
+      >
+        <div className="animate-fade-up flex flex-col items-center text-center">
+          <Avatar seed={profile.avatar_seed} size={96} className="ring-4 ring-primary/40 shadow-glow" />
+          <div className="text-display mt-3 text-2xl font-black">{profile.username}</div>
+          <div className="text-primary text-xs font-bold uppercase tracking-[0.3em]">
+            The {titleForLevel(lp.level)}
+          </div>
         </div>
-      </div>
+      </AtmoCard>
 
       {/* Level */}
-      <div className="bg-card animate-fade-up mt-5 rounded-2xl border border-border p-5">
+      <AtmoCard
+        variant="cinematic"
+        image={atmoWarrior}
+        imageOpacity={0.12}
+        imagePosition="center top"
+        glow
+        className="animate-fade-up mt-5 p-5"
+      >
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Level</div>
-            <div className="text-foreground text-4xl font-black tabular-nums">{lp.level}</div>
+            <div className="text-foreground text-display text-5xl font-black tabular-nums">{lp.level}</div>
           </div>
           <div className="text-right">
-            <div className="text-foreground text-lg font-bold tabular-nums">
+            <div className="text-foreground text-display text-lg font-bold tabular-nums">
               {profile.total_xp.toLocaleString()}
             </div>
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">XP</div>
@@ -122,16 +125,16 @@ function ProfilePage() {
         <div className="mt-3">
           <XpBar progress={lp.progress} animateKey={profile.total_xp} />
           <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-            <span>{lp.xpInLevel} / {lp.span}</span>
-            <span>Streak · {profile.streak} 🔥</span>
+            <span className="text-display">{lp.xpInLevel} / {lp.span}</span>
+            <span className="text-display">Streak · {profile.streak} 🔥</span>
           </div>
         </div>
-      </div>
+      </AtmoCard>
 
       {/* Rank */}
       <Link
         to="/ranks"
-        className="press bg-card mt-4 flex items-center gap-3 rounded-2xl border border-border p-4"
+        className="press card-premium mt-4 flex items-center gap-3 rounded-2xl p-4 edge-red"
       >
         <div className="bg-primary/15 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
           <Trophy className="h-5 w-5" />
@@ -147,39 +150,36 @@ function ProfilePage() {
       <section className="mt-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-bold uppercase tracking-wider">Badges</h2>
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-[11px] text-muted-foreground text-display">
             {badges.filter((b) => b.unlocked).length}/{badges.length}
           </span>
         </div>
         <div className="grid grid-cols-3 gap-3">
-          {badges.map((b) => {
-            const Icon = ICONS[b.icon] ?? Trophy;
-            return (
-              <div
-                key={b.code}
-                className={`bg-card flex flex-col items-center rounded-xl border border-border p-3 ${
-                  b.unlocked ? "shadow-glow" : "opacity-60"
-                }`}
-              >
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                    b.unlocked ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  {b.unlocked ? <Icon className="h-5 w-5" /> : <Lock className="h-4 w-4" />}
+          {badges.map((b) => (
+            <div
+              key={b.code}
+              className={`card-premium flex flex-col items-center rounded-xl p-3 ${
+                b.unlocked ? "edge-red" : "opacity-70"
+              }`}
+            >
+              {b.unlocked ? (
+                <BadgeEmblem icon={b.icon} size={56} />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                  <Lock className="h-5 w-5" />
                 </div>
-                <div className="mt-2 text-center text-[11px] font-semibold leading-tight">
-                  {b.name}
-                </div>
+              )}
+              <div className="mt-2 text-center text-[11px] font-semibold leading-tight">
+                {b.name}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Menu */}
       <section className="mt-6">
-        <div className="bg-card divide-y divide-border overflow-hidden rounded-2xl border border-border">
+        <div className="card-premium divide-y divide-border overflow-hidden rounded-2xl">
           <MenuLink to="/progress" icon={<BarChart3 className="h-4 w-4" />} label="Stats" />
           <MenuLink to="/profile" icon={<History className="h-4 w-4" />} label="Workout history" disabled />
           <MenuLink to="/profile" icon={<Users className="h-4 w-4" />} label="Friends" badge="Soon" disabled />

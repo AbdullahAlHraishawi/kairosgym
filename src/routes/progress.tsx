@@ -94,13 +94,13 @@ function ProgressPage() {
       </header>
 
       {/* Weekly XP */}
-      <section className="bg-card animate-fade-up mt-5 rounded-2xl border border-border p-5">
+      <section className="card-premium animate-fade-up mt-5 rounded-2xl p-5 edge-red">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
               Weekly XP
             </div>
-            <div className="text-foreground text-3xl font-black tabular-nums">
+            <div className="text-foreground text-display text-3xl font-black tabular-nums">
               {weekData.reduce((a, b) => a + b.xp, 0).toLocaleString()}
             </div>
           </div>
@@ -120,6 +120,12 @@ function ProgressPage() {
         <div className="-ml-2 mt-4 h-32">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={weekData}>
+              <defs>
+                <linearGradient id="barXp" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="oklch(0.7 0.2 30)" />
+                  <stop offset="100%" stopColor="oklch(0.5 0.18 25)" />
+                </linearGradient>
+              </defs>
               <XAxis
                 dataKey="day"
                 tickLine={false}
@@ -136,14 +142,14 @@ function ProgressPage() {
                   color: "var(--foreground)",
                 }}
               />
-              <Bar dataKey="xp" radius={[6, 6, 0, 0]} fill="var(--primary)" />
+              <Bar dataKey="xp" radius={[6, 6, 0, 0]} fill="url(#barXp)" />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </section>
 
       {/* Muscle map */}
-      <section className="bg-card animate-fade-up mt-5 rounded-2xl border border-border p-5">
+      <section className="card-premium animate-fade-up mt-5 rounded-2xl p-5">
         <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
           Muscles trained · last 30 days
         </div>
@@ -180,9 +186,9 @@ function ProgressPage() {
 
 function Tile({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <div className="bg-card rounded-2xl border border-border p-4">
-      <div className="text-primary flex items-center gap-1.5">{icon}</div>
-      <div className="text-foreground mt-2 text-2xl font-black tabular-nums">
+    <div className="card-premium rounded-2xl p-4">
+      <div className="text-primary flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15">{icon}</div>
+      <div className="text-foreground text-display mt-2 text-2xl font-black tabular-nums">
         {value.toLocaleString()}
       </div>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>

@@ -10,7 +10,8 @@ export function MobileShell({
 }) {
   return (
     <div className="relative mx-auto min-h-screen w-full max-w-md bg-background">
-      <main className={`px-5 pt-6 ${hideNav ? "pb-6" : "pb-28"}`}>{children}</main>
+      <div className="app-vignette" aria-hidden="true" />
+      <main className={`relative z-10 px-5 pt-6 ${hideNav ? "pb-6" : "pb-28"}`}>{children}</main>
       {!hideNav && <BottomNav />}
     </div>
   );
