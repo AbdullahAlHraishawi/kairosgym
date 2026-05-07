@@ -128,6 +128,7 @@ export async function finishWorkout(exercises: LoggedExercise[]): Promise<Finish
   }
 
   return {
+    workoutId: workout.id,
     xpEarned,
     newTotalXp,
     newLevel,
