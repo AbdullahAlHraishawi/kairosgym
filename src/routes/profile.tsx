@@ -85,6 +85,33 @@ function ProfilePage() {
     navigate({ to: "/auth" });
   };
 
+  const openWeight = () => {
+    setWeightInput(profile?.weight_kg ? String(profile.weight_kg) : "");
+    setWeightOpen(true);
+  };
+
+  const saveWeight = async () => {
+    if (!user) return;
+    const n = Number(weightInput);
+    if (!Number.isFinite(n) || n < 30 || n > 300) {
+      toast.error("Enter a weight between 30 and 300 kg");
+      return;
+    }
+    setSavingWeight(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ weight_kg: n })
+      .eq("id", user.id);
+    setSavingWeight(false);
+    if (error) {
+      toast.error("Could not save weight");
+      return;
+    }
+    toast.success("Weight saved");
+    setWeightOpen(false);
+    void refresh();
+  };
+
   if (!profile) {
     return (
       <MobileShell>
