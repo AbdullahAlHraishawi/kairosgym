@@ -38,7 +38,9 @@ function LogPage() {
   const { profile } = useProfile(user?.id);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loadingExercises, setLoadingExercises] = useState(true);
-  const startedAtRef = useRef<number>(Date.now());
+  const [intro, setIntro] = useState(true);
+  const startedAtRef = useRef<number | null>(null);
+  const [, forceTick] = useState(0);
   const subtitle = useMemo(
     () => SUBTITLES[Math.floor(Math.random() * SUBTITLES.length)],
     [],
@@ -59,6 +61,7 @@ function LogPage() {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [loading, user, navigate]);
 
+  // Fetch exercises during the intro splash so they're ready when it ends
   useEffect(() => {
     const raw = sessionStorage.getItem("kairos_picked");
     const ids: string[] = raw ? JSON.parse(raw) : [];
@@ -87,6 +90,12 @@ function LogPage() {
         setLoadingExercises(false);
       });
   }, []);
+
+  const handleIntroDone = () => {
+    startedAtRef.current = Date.now();
+    setIntro(false);
+    forceTick((n) => n + 1);
+  };
 
   // Live session XP from completed sets only
   const sessionXp = useMemo(
