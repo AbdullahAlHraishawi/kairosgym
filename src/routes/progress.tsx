@@ -100,9 +100,13 @@ function ProgressPage() {
       });
       setWorkoutRows(rows);
 
+      const lifeSecs = rows.reduce((acc, w) => {
+        if (!w.finished_at) return acc;
+        return acc + Math.max(0, (new Date(w.finished_at).getTime() - new Date(w.started_at).getTime()) / 1000);
+      }, 0);
       setStats({
         workouts: rows.length,
-        hours: Math.round(totalSecs / 360) / 10,
+        hours: Math.round(lifeSecs / 360) / 10,
         sets: lSets,
         reps: lReps,
         volume: lVol,
