@@ -97,7 +97,7 @@ function BodyView({
                 ...maskStyle,
                 background: "var(--primary)",
                 opacity,
-                mixBlendMode: "multiply",
+                mixBlendMode: "hard-light",
                 transition: "opacity 300ms ease",
               }}
             />
