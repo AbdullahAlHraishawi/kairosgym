@@ -223,7 +223,7 @@ function ProgressPage() {
           <Tile
             icon={<Flame className="h-4 w-4" />}
             label="Calories"
-            value={estimateCalories(profile.weight_kg, stats.totalSecs)}
+            value={sumWorkoutCalories(workoutRows, profile.weight_kg)}
           />
         ) : (
           <Link
