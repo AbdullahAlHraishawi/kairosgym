@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress } from "@/lib/xp";
+import { estimateCalories, CAL_DISCLAIMER } from "@/lib/calories";
 
 export const Route = createFileRoute("/workout/complete")({
   validateSearch: z.object({ id: z.string().optional() }),
@@ -37,6 +38,7 @@ function hashStr(s: string) {
 
 interface Summary {
   duration: string;
+  durationSecs: number;
   exercises: number;
   sets: number;
   reps: number;
@@ -111,8 +113,10 @@ function CompletePage() {
       const endMs = workout.finished_at
         ? new Date(workout.finished_at).getTime()
         : Date.now();
+      const durationSecs = Math.max(0, Math.floor((endMs - startMs) / 1000));
       setSummary({
         duration: fmtDuration(endMs - startMs),
+        durationSecs,
         exercises: exercisesWithSets,
         sets: setsCount,
         reps: repsCount,
@@ -218,7 +222,25 @@ function CompletePage() {
               label="Volume"
               value={`${summary.volume.toLocaleString()} kg`}
             />
+            {profile?.weight_kg ? (
+              <SummaryRow
+                label="Calories"
+                value={`≈ ${estimateCalories(profile.weight_kg, summary.durationSecs).toLocaleString()} kcal`}
+              />
+            ) : (
+              <Link to="/profile" className="press flex items-center justify-between py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                  Calories
+                </div>
+                <div className="text-[11px] font-bold text-primary">
+                  Set weight in profile →
+                </div>
+              </Link>
+            )}
           </div>
+          {profile?.weight_kg && (
+            <p className="mt-3 text-[10px] italic text-muted-foreground">{CAL_DISCLAIMER}</p>
+          )}
         </section>
 
         {/* Level progress */}

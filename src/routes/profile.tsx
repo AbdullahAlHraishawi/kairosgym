@@ -9,12 +9,22 @@ import {
   History,
   Users,
   Lock,
+  Scale,
 } from "lucide-react";
 import { MobileShell } from "@/components/mobile-shell";
 import { Avatar } from "@/components/avatar";
 import { XpBar } from "@/components/xp-bar";
 import { AtmoCard } from "@/components/atmo-card";
 import { BadgeEmblem } from "@/components/badge-emblem";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress, titleForLevel } from "@/lib/xp";
@@ -36,7 +46,10 @@ export const Route = createFileRoute("/profile")({
 function ProfilePage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const { profile } = useProfile(user?.id);
+  const { profile, refresh } = useProfile(user?.id);
+  const [weightOpen, setWeightOpen] = useState(false);
+  const [weightInput, setWeightInput] = useState("");
+  const [savingWeight, setSavingWeight] = useState(false);
   const [badges, setBadges] = useState<
     { code: string; name: string; description: string; icon: string; unlocked: boolean }[]
   >([]);
@@ -70,6 +83,33 @@ function ProfilePage() {
     await supabase.auth.signOut();
     toast("Signed out");
     navigate({ to: "/auth" });
+  };
+
+  const openWeight = () => {
+    setWeightInput(profile?.weight_kg ? String(profile.weight_kg) : "");
+    setWeightOpen(true);
+  };
+
+  const saveWeight = async () => {
+    if (!user) return;
+    const n = Number(weightInput);
+    if (!Number.isFinite(n) || n < 30 || n > 300) {
+      toast.error("Enter a weight between 30 and 300 kg");
+      return;
+    }
+    setSavingWeight(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ weight_kg: n })
+      .eq("id", user.id);
+    setSavingWeight(false);
+    if (error) {
+      toast.error("Could not save weight");
+      return;
+    }
+    toast.success("Weight saved");
+    setWeightOpen(false);
+    void refresh();
   };
 
   if (!profile) {
@@ -177,8 +217,35 @@ function ProfilePage() {
         </div>
       </section>
 
-      {/* Menu */}
+      {/* Body weight */}
       <section className="mt-6">
+        <button
+          onClick={openWeight}
+          className="press card-premium flex w-full items-center gap-3 rounded-2xl p-4 edge-red"
+        >
+          <div className="bg-primary/15 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
+            <Scale className="h-5 w-5" />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="text-sm font-bold">Body weight</div>
+            <div className="text-[11px] text-muted-foreground">
+              {profile.weight_kg
+                ? "Used to estimate calories burned"
+                : "Set your weight to track calories"}
+            </div>
+          </div>
+          <div className="text-display text-right">
+            <div className="text-foreground text-lg font-black tabular-nums">
+              {profile.weight_kg ? `${profile.weight_kg}` : "—"}
+              <span className="ml-1 text-xs text-muted-foreground">kg</span>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </section>
+
+      {/* Menu */}
+      <section className="mt-4">
         <div className="card-premium divide-y divide-border overflow-hidden rounded-2xl">
           <MenuLink to="/progress" icon={<BarChart3 className="h-4 w-4" />} label="Stats" />
           <MenuLink to="/profile" icon={<History className="h-4 w-4" />} label="Workout history" disabled />
@@ -193,6 +260,44 @@ function ProfilePage() {
           </button>
         </div>
       </section>
+
+      <Dialog open={weightOpen} onOpenChange={setWeightOpen}>
+        <DialogContent className="card-premium">
+          <DialogHeader>
+            <DialogTitle className="text-display uppercase tracking-widest">
+              Body weight
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-2">
+            <label className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              Weight (kg)
+            </label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              min={30}
+              max={300}
+              step="0.1"
+              value={weightInput}
+              onChange={(e) => setWeightInput(e.target.value)}
+              placeholder="e.g. 78"
+              className="mt-1 text-display text-lg"
+              autoFocus
+            />
+            <p className="mt-2 text-[10px] italic text-muted-foreground">
+              Used only to estimate calories burned during your sessions.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setWeightOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveWeight} disabled={savingWeight}>
+              {savingWeight ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MobileShell>
   );
 }
