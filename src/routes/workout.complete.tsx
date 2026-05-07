@@ -222,7 +222,25 @@ function CompletePage() {
               label="Volume"
               value={`${summary.volume.toLocaleString()} kg`}
             />
+            {profile?.weight_kg ? (
+              <SummaryRow
+                label="Calories"
+                value={`≈ ${estimateCalories(profile.weight_kg, summary.durationSecs).toLocaleString()} kcal`}
+              />
+            ) : (
+              <Link to="/profile" className="press flex items-center justify-between py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                  Calories
+                </div>
+                <div className="text-[11px] font-bold text-primary">
+                  Set weight in profile →
+                </div>
+              </Link>
+            )}
           </div>
+          {profile?.weight_kg && (
+            <p className="mt-3 text-[10px] italic text-muted-foreground">{CAL_DISCLAIMER}</p>
+          )}
         </section>
 
         {/* Level progress */}
