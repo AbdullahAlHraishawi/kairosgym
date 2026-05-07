@@ -10,7 +10,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress, titleForLevel } from "@/lib/xp";
 import { supabase } from "@/integrations/supabase/client";
-import { estimateCalories, CAL_DISCLAIMER } from "@/lib/calories";
+import {
+  sumWorkoutCalories,
+  type WorkoutForCalories,
+  CAL_DISCLAIMER,
+} from "@/lib/calories";
 import atmoWarrior from "@/assets/atmo-warrior.png";
 import atmoCrowd from "@/assets/atmo-crowd.png";
 
@@ -48,7 +52,7 @@ function HomePage() {
   const [todayCount, setTodayCount] = useState(0);
   const [weeklyXp, setWeeklyXp] = useState(0);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
-  const [totalSecs, setTotalSecs] = useState(0);
+  const [workoutRows, setWorkoutRows] = useState<WorkoutForCalories[]>([]);
   const [achievements, setAchievements] = useState<AchPreview[]>([]);
 
   useEffect(() => {
@@ -71,16 +75,31 @@ function HomePage() {
 
       const { data: allWorkouts } = await supabase
         .from("workouts")
-        .select("started_at, finished_at")
+        .select(
+          "started_at, finished_at, workout_exercises(workout_sets(reps, completed))",
+        )
         .eq("user_id", user.id);
       setTotalWorkouts((allWorkouts ?? []).length);
-      let secs = 0;
-      (allWorkouts ?? []).forEach((w) => {
-        if (w.finished_at) {
-          secs += Math.max(0, (new Date(w.finished_at).getTime() - new Date(w.started_at).getTime()) / 1000);
-        }
+      const rows: WorkoutForCalories[] = (allWorkouts ?? []).map((w) => {
+        let totalReps = 0;
+        let setsCount = 0;
+        const wex = (w as { workout_exercises?: Array<{ workout_sets?: Array<{ reps: number; completed: boolean }> }> }).workout_exercises ?? [];
+        wex.forEach((e) => {
+          (e.workout_sets ?? []).forEach((s) => {
+            if (s.completed) {
+              setsCount += 1;
+              totalReps += s.reps ?? 0;
+            }
+          });
+        });
+        return {
+          started_at: w.started_at,
+          finished_at: w.finished_at,
+          totalReps,
+          setsCount,
+        };
       });
-      setTotalSecs(secs);
+      setWorkoutRows(rows);
 
       const { data: allAch } = await supabase
         .from("achievements")
