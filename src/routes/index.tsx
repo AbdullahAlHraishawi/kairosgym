@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress, titleForLevel } from "@/lib/xp";
 import { supabase } from "@/integrations/supabase/client";
+import { estimateCalories, CAL_DISCLAIMER } from "@/lib/calories";
 import atmoWarrior from "@/assets/atmo-warrior.png";
 import atmoCrowd from "@/assets/atmo-crowd.png";
 
@@ -47,6 +48,7 @@ function HomePage() {
   const [todayCount, setTodayCount] = useState(0);
   const [weeklyXp, setWeeklyXp] = useState(0);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
+  const [totalSecs, setTotalSecs] = useState(0);
   const [achievements, setAchievements] = useState<AchPreview[]>([]);
 
   useEffect(() => {
@@ -67,11 +69,18 @@ function HomePage() {
       setTodayCount((weekly ?? []).filter((w) => new Date(w.started_at).toDateString() === today).length);
       setWeeklyXp((weekly ?? []).reduce((s, w) => s + (w.xp_earned ?? 0), 0));
 
-      const { count } = await supabase
+      const { data: allWorkouts } = await supabase
         .from("workouts")
-        .select("*", { count: "exact", head: true })
+        .select("started_at, finished_at")
         .eq("user_id", user.id);
-      setTotalWorkouts(count ?? 0);
+      setTotalWorkouts((allWorkouts ?? []).length);
+      let secs = 0;
+      (allWorkouts ?? []).forEach((w) => {
+        if (w.finished_at) {
+          secs += Math.max(0, (new Date(w.finished_at).getTime() - new Date(w.started_at).getTime()) / 1000);
+        }
+      });
+      setTotalSecs(secs);
 
       const { data: allAch } = await supabase
         .from("achievements")
