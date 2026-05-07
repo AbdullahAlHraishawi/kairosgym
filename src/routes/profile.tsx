@@ -263,57 +263,50 @@ function ProfilePage() {
         </div>
       </section>
 
-      <Dialog open={weightOpen} onOpenChange={setWeightOpen}>
-        <DialogContent
-          className="card-premium w-[calc(100vw-2rem)] max-w-sm rounded-2xl p-5"
-          style={
-            vvHeight
-              ? { top: vvHeight / 2, transform: "translate(-50%, -50%)" }
-              : undefined
-          }
-        >
-          <DialogHeader>
-            <DialogTitle className="text-display uppercase tracking-widest text-center">
-              Body weight
-            </DialogTitle>
-          </DialogHeader>
-          <div className="mt-1">
-            <label className="text-[11px] uppercase tracking-widest text-muted-foreground">
-              Weight (kg)
-            </label>
-            <Input
-              ref={inputRef}
-              type="number"
-              inputMode="decimal"
-              min={30}
-              max={300}
-              step="0.1"
-              value={weightInput}
-              onChange={(e) => setWeightInput(e.target.value)}
-              onFocus={() =>
-                setTimeout(
-                  () => inputRef.current?.scrollIntoView({ block: "center" }),
-                  300,
-                )
-              }
-              placeholder="e.g. 78"
-              className="mt-1 text-display text-lg"
-              autoFocus
-            />
-            <p className="mt-2 text-[10px] italic text-muted-foreground">
-              Estimate only. Used to calculate calories burned.
-            </p>
+      <DialogPrimitive.Root open={weightOpen} onOpenChange={setWeightOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <DialogPrimitive.Content
+              className="card-premium pointer-events-auto w-full max-w-sm rounded-2xl border bg-background p-5 shadow-lg max-h-[calc(100dvh-2rem)] overflow-auto data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+            >
+              <DialogHeader>
+                <DialogTitle className="text-display uppercase tracking-widest text-center">
+                  Body weight
+                </DialogTitle>
+              </DialogHeader>
+              <div className="mt-1">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                  Weight (kg)
+                </label>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={30}
+                  max={300}
+                  step="0.1"
+                  value={weightInput}
+                  onChange={(e) => setWeightInput(e.target.value)}
+                  placeholder="e.g. 78"
+                  className="mt-1 text-display text-lg"
+                  autoFocus
+                />
+                <p className="mt-2 text-[10px] italic text-muted-foreground">
+                  Estimate only. Used to calculate calories burned.
+                </p>
+              </div>
+              <DialogFooter className="mt-3 flex-row gap-2 sm:justify-end">
+                <Button variant="ghost" className="flex-1 sm:flex-none" onClick={() => setWeightOpen(false)}>
+                  Cancel
+                </Button>
+                <Button className="flex-1 sm:flex-none" onClick={saveWeight} disabled={savingWeight}>
+                  {savingWeight ? "Saving…" : "Save"}
+                </Button>
+              </DialogFooter>
+            </DialogPrimitive.Content>
           </div>
-          <DialogFooter className="mt-2 flex-row gap-2 sm:justify-end">
-            <Button variant="ghost" className="flex-1 sm:flex-none" onClick={() => setWeightOpen(false)}>
-              Cancel
-            </Button>
-            <Button className="flex-1 sm:flex-none" onClick={saveWeight} disabled={savingWeight}>
-              {savingWeight ? "Saving…" : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
     </MobileShell>
   );
 }
