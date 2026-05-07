@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export interface SetRowState {
   weight: number;
@@ -10,10 +11,25 @@ interface Props {
   index: number;
   set: SetRowState;
   onChange: (patch: Partial<SetRowState>) => void;
+  floatXp?: number | null;
+  onFloatDone?: () => void;
 }
 
-export function SetRow({ index, set, onChange }: Props) {
+export function SetRow({ index, set, onChange, floatXp, onFloatDone }: Props) {
   const done = set.done;
+  const [showFloat, setShowFloat] = useState(false);
+
+  useEffect(() => {
+    if (floatXp && floatXp > 0) {
+      setShowFloat(true);
+      const t = setTimeout(() => {
+        setShowFloat(false);
+        onFloatDone?.();
+      }, 900);
+      return () => clearTimeout(t);
+    }
+  }, [floatXp, onFloatDone]);
+
   return (
     <div
       className={`relative flex items-center gap-2.5 rounded-xl border px-2.5 py-2 transition-all ${
