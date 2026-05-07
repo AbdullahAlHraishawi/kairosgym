@@ -1,62 +1,30 @@
-## Goal
-Make the highlight follow the actual muscle shapes (like the reference image) instead of soft red ellipses floating over the body.
+## Problem
+The whole card renders as a solid red square covering the body. Cause: some generated mask PNGs have an opaque **black background** instead of a transparent one (visible in `mask-back-shoulders.png` and `mask-back-arms.png`). CSS `mask-image` defaults to `mask-mode: match-source`, which uses the image's **alpha** channel — an opaque black background = fully visible everywhere, so red floods the entire body.
 
-## Why the current version looks "off"
-`MuscleDiagram.tsx` paints `<ellipse>` blobs with `mixBlendMode: screen`. The blobs don't match the muscle silhouettes in the generated anatomy PNG, so the glow looks like stickers, not lit-up muscles.
+There's also a "lag" — stacking 8 large blurred mask layers per page is heavy.
 
-## Approach: per-muscle mask overlays
+## Fix
 
-For each body view, generate a set of **transparent PNG masks** that are pixel-aligned to the existing `body-front.png` / `body-back.png`. Each mask is white where its muscle group lives, transparent elsewhere. We then render a red-tinted `<div>` per muscle group whose visible shape is cut out by `mask-image: url(mask.png)`. Result: only the actual muscle silhouettes glow red, exactly like the reference photo.
+### 1. Switch mask mode to luminance
+In `src/components/MuscleDiagram.tsx`, add `maskMode: "luminance"` and `WebkitMaskMode: "luminance"` to the mask style. White pixels become opaque, black/transparent become clear — works regardless of whether the source PNG has a transparent or black background.
 
-### 1. Generate aligned masks (premium AI, transparent PNG, same 1024x1536 frame as the body assets)
+### 2. Regenerate the broken masks cleanly
+Re-run image generation for any mask whose background is opaque black:
+- `mask-back-shoulders.png`
+- `mask-back-arms.png`
+- `mask-back-back.png` (also had odd shape)
+- `mask-back-legs.png` (only calves, missing glutes/hams)
 
-Front:
-- `src/assets/mask-front-chest.png` — both pectorals
-- `src/assets/mask-front-shoulders.png` — front delts
-- `src/assets/mask-front-arms.png` — biceps + forearms (both sides)
-- `src/assets/mask-front-legs.png` — quads + calves (both sides)
+Even with luminance mode, these need better silhouettes to match the reference look.
 
-Back:
-- `src/assets/mask-back-back.png` — traps + lats
-- `src/assets/mask-back-shoulders.png` — rear delts
-- `src/assets/mask-back-arms.png` — triceps + forearms
-- `src/assets/mask-back-legs.png` — glutes + hamstrings + calves
+### 3. Reduce render cost (fix the lag)
+- Drop `filter: blur(10px)` on the halo layer (expensive on 4 layers × 2 bodies = 8 blurred layers, recomputed on every focus change). Replace with a single subtler `box-shadow`-style glow via a second mask layer at lower opacity — or just remove the halo and rely on the solid tint + brightness on the body image.
+- Memoize layer arrays (already static at module scope, fine).
+- Use `will-change: opacity` only on the focused layer, not all of them.
 
-Each generated as a white silhouette on transparent background, traced to the same body proportions as the existing assets. QA each visually before wiring in; regenerate any that drift.
-
-### 2. Rewrite `MuscleDiagram.tsx`
-
-Replace the SVG ellipse system with a stack of mask layers:
-
-```text
-[ body image (dimmed when a filter is focused) ]
-[ red layer masked by chest    ]  ← visible only if trained or focused
-[ red layer masked by shoulders ]
-[ red layer masked by arms      ]
-[ red layer masked by legs/back ]
-[ optional soft red blur layer behind, also masked, for the glow halo ]
-```
-
-Per layer:
-- `background: var(--primary)` for the solid red tint, plus a second behind-layer with `filter: blur(8px)` and lower opacity for the outer glow.
-- `mask-image: url(...); mask-size: 100% 100%; mask-repeat: no-repeat;` (with `-webkit-mask-*` fallbacks).
-- `mix-blend-mode: multiply` on the solid layer so it tints the underlying muscle shading instead of flat-painting it; `screen` on the blur layer for the halo.
-- Opacity logic stays the same as today:
-  - no focus + trained → full glow
-  - focused muscle → full glow + stronger blur halo
-  - other muscles when something is focused → fade to ~0.15
-  - untrained + nothing focused → 0
-
-### 3. No changes elsewhere
-`progress.tsx` keeps the same `<MuscleDiagram trainedMuscles focusedMuscle />` API. Pills, card chrome, data source untouched.
+### 4. Verify in the browser
+After the edit, open `/progress` in the browser tool, screenshot, and confirm: body is visible, only muscle silhouettes glow red, pill taps focus the right group, no full-card red flood.
 
 ## Out of scope
 - Re-generating the base body PNGs.
-- Workout/session logic.
 - Other progress sections.
-
-## Technical notes
-- All masks share the body's aspect ratio so they line up automatically inside the existing `aspect-[2/3]` container — no per-region coords to maintain.
-- Colors stay token-based (`var(--primary)`); no hardcoded hex.
-- Masks are static assets, imported via ES6 (`import chestMask from "@/assets/mask-front-chest.png"`).
-- If a generated mask is slightly misaligned, we can nudge it with `transform: scale()/translate()` per layer rather than regenerating.
