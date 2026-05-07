@@ -1,89 +1,62 @@
-# Cinematic Atmosphere Pass — KAIROS Logged-In UI
+## Active Workout Session — Phase 1
 
-Visual-only upgrade. No layout changes, no new sections, no removed features. Existing structure on Home, Profile, Progress, Leaderboard, and Ranks stays identical — we only enrich shadows, gradients, glow, character art, badge visuals, and typography.
+Replace the current spreadsheet-style `/workout/log` screen with a cinematic, card-based ACTIVE SESSION UI. Add a brief "SESSION STARTED" intro overlay when entering the session. Keep all existing KAIROS tokens, shadows, glow utilities, and mobile shell.
 
-## 1. New atmospheric assets (generated as transparent/dark PNGs)
+No XP, no achievements, no rest timers, no DB writes in this phase.
 
-All faded anime-style art, dark + red-tinted, designed to sit at 10–18% opacity behind cards.
+---
 
-- `src/assets/atmo-warrior.png` — silhouette of a hooded fighter (level card backdrop)
-- `src/assets/atmo-gym.png` — dark gym interior with red rim light (home top banner backdrop)
-- `src/assets/atmo-crowd.png` — faded arena/crowd silhouette (leaderboard backdrop)
-- `src/assets/atmo-blade.png` — single katana / cross emblem (profile header backdrop)
+### Flow
 
-Plus illustrated metallic badge emblems (transparent PNGs, dark red metallic, ~256px):
+1. User picks exercises on `/workout` and presses **START WORKOUT** (existing button — unchanged behavior, still navigates to `/workout/log`).
+2. `/workout/log` mounts → plays **SESSION STARTED** overlay (~1s) with fade + red glow pulse, then reveals the session screen.
+3. Session timer starts at `00:00` and counts up.
+4. User fills weight/reps and taps **COMPLETE** per set; completed sets get a persistent red-glow state.
+5. Sticky bottom button **COMPLETE SESSION** → fades out, navigates back to `/` (no save logic this phase).
 
-- `src/assets/badge-flame.png` — ember/flame crest (streak)
-- `src/assets/badge-skull.png` — skull emblem (discipline)
-- `src/assets/badge-shield.png` — warrior shield crest
-- `src/assets/badge-crown.png` — elite crown emblem
-- `src/assets/badge-sword.png` — crossed swords crest
-- `src/assets/badge-trophy.png` — engraved trophy emblem
+---
 
-These map onto the existing `icon` strings (`flame`, `shield`, `crown`, `sword`, `trophy`, plus `zap` → fallback to flame).
+### Screen layout (`/workout/log`, full rewrite, mobile-only)
 
-## 2. Design system additions (`src/styles.css`)
+**Top section**
+- Small back chevron (top-left), kept minimal
+- Workout name in display type, derived from dominant muscle group of picked exercises (e.g. "ARM DAY", "LEG DAY", "CHEST DAY", fallback "TRAINING DAY")
+- Session timer `MM:SS` in large tabular-nums, red-glow accent
+- Rotating motivational subtitle (picked once per session from a small list: "Forge your limits.", "Stay disciplined.", "Earn every rep.")
 
-Add new tokens + utilities (no breaking changes to existing ones):
+**Exercise session cards** (one per picked exercise)
+- `card-premium` style with red edge glow
+- Exercise name (bold, uppercase tracked) + muscle group label
+- Vertical stack of SET rows (no grid headers, no table feel):
+  - "SET 1" label chip on the left
+  - Weight input (large, pill-shaped, kg suffix)
+  - Reps input (large, pill-shaped, reps suffix)
+  - **COMPLETE** pill button on the right
+- Tapping COMPLETE: button morphs to a filled red state with check icon + glow; row gets a subtle red tint and a left red accent bar; tap again to undo
+- "+ ADD SET" ghost button at the bottom of each card
 
-- `--gradient-card`: top-down subtle gradient for card surfaces (slightly lighter at top, darker at bottom).
-- `--gradient-level`: stronger red-to-dark radial used inside the level card.
-- `--shadow-inset-top`: subtle inner top highlight.
-- `--shadow-edge-red`: faint red edge glow for premium cards.
-- `--shadow-card-deep`: stronger layered drop shadow.
-- New utility classes: `.card-premium` (combines gradient + inset highlight + faint red edge + deep shadow), `.card-cinematic` (same + animated lighting sweep), `.text-display` (slightly condensed letter-spacing for cinematic numbers), `.metallic-emblem` (drop-shadow glow tuned for badge PNGs).
-- New keyframes: `light-sweep` (slow diagonal highlight across level card), `ember-pulse` (slower, softer pulse than `glow-pulse`).
-- Tighten display typography: condensed tracking for large numbers via `.text-display` class (kept Inter — no font swap to avoid scope creep).
+**Sticky bottom action**
+- Full-width **COMPLETE SESSION** button with strong red glow + `animate-glow` pulse
+- For now: navigates to `/` on tap (no save, no overlay)
 
-## 3. Reusable atmosphere primitive
+---
 
-New tiny component `src/components/atmo-card.tsx`:
+### Components & files
 
-- Wraps existing card markup, adds an absolutely-positioned faded background image layer (configurable opacity 0.1–0.18), a top-to-bottom gradient overlay, and inner highlight + red edge glow.
-- Accepts `image`, `opacity`, `tone` ("red" | "neutral"), `glow` boolean.
-- Used to upgrade: level card, leaderboard card, profile header, badges row container.
+- `src/routes/workout.log.tsx` — full rewrite for new session UI; remove finishWorkout call, XpGainOverlay, achievements/streak toasts
+- `src/components/session-intro.tsx` (new) — fullscreen overlay showing "SESSION STARTED" with fade-in/out + red pulse, auto-dismisses after ~1s
+- `src/components/session-timer.tsx` (new) — small hook+component returning live `MM:SS` since mount
+- `src/components/set-row.tsx` (new) — single set row with weight/reps inputs and COMPLETE toggle
+- `src/styles.css` — add (only if missing) a `set-row-complete` accent class and a `session-intro` keyframe; reuse existing `card-premium`, `shadow-glow`, `animate-glow`, `animate-fade-up`
 
-## 4. Page-by-page enhancements
+State is local to the route (`useState`) — no persistence. `sessionStorage.kairos_picked` continues to feed the picked exercise IDs into the session.
 
-### Home (`src/routes/index.tsx`)
-- Wrap level card in `AtmoCard` with `atmo-warrior.png` at 14% opacity, add `.card-cinematic` (light sweep) and stronger XP glow.
-- XP bar: thicker (h-3), inner shadow groove, red gradient fill (`linear-gradient(90deg, primary, primary-glow)`), animated shimmer overlay while filling.
-- Stat cards: add `.card-premium` (gradient + inset top highlight + faint red edge).
-- Achievements row: replace lucide icon + circle with metallic badge PNG (`badge-*.png`) inside a dark inset disc; locked state stays muted with `Lock` icon. Card gets faint red edge when unlocked.
-- Leaderboard preview: wrap in `AtmoCard` with `atmo-crowd.png` at 12%; rank #1 row gets red gradient row background + shadow-glow, rank-number gets metallic gradient text.
-- Top "Yo, {username}" header gets a thin gradient divider underneath.
+---
 
-### Profile (`src/routes/profile.tsx`)
-- Header avatar block: add `atmo-blade.png` background at 12% behind the avatar with vignette.
-- Level card: same `AtmoCard` + cinematic treatment as home.
-- Badges grid: swap icons for metallic emblem PNGs; locked tiles stay muted; unlocked tiles get `card-premium` + faint glow.
-- Rank row: add gradient strip on the left edge tinted by the rank color.
+### Out of scope (explicit)
 
-### Progress (`src/routes/progress.tsx`)
-- Weekly XP card and Muscle map card: apply `.card-premium`.
-- Bar chart: switch fill to a vertical red gradient (`linear-gradient(180deg, primary-glow, primary)`) via SVG `<defs>` in recharts.
-- Tiles: `.card-premium` + small icon background tinted red.
-
-### Leaderboard (`src/routes/leaderboard.tsx`)
-- Podium: top-1 avatar gets stronger animated glow + metallic crown badge floating above; podium columns get gradient fill (taller column = brighter red top edge).
-- List: top-3 rows get red-tinted background + faint glow; rank-number uses metallic gradient text; XP values use `.text-display`.
-
-### Ranks (`src/routes/ranks.tsx`)
-- Each rank row: unlocked rows get `.card-premium` + colored edge using the rank's color token (already present); icon disc gets inset shadow.
-
-### Mobile shell (`src/components/mobile-shell.tsx`)
-- Add a fixed, pointer-events-none full-bleed background layer with a very subtle dark-red radial vignette (top-right) + grain-free noise gradient. Opacity ~6%. Provides global cinematic mood without touching any page content.
-
-## 5. What is NOT changing
-
-- No route additions, no new pages, no nav changes.
-- No data/business logic changes (XP math, queries, auth all untouched).
-- No font swap (Inter stays). Typography upgrade is tracking/weight + new `.text-display` utility only.
-- Bottom nav, buttons, forms keep current structure.
-
-## Technical notes
-
-- All new colors flow through `src/styles.css` tokens (oklch). No raw hex in components.
-- New PNGs are imported directly from `src/assets` (Vite handles bundling). Generated via `imagegen--generate_image` with `transparent_background: true` for badges and `false` (dark scenes) for atmo-* art.
-- `AtmoCard` keeps the existing `bg-card`/`rounded-2xl`/`border-border` classes so spacing and hit areas match exactly.
-- Animations use existing reduced-motion-friendly easings; new `light-sweep` is slow (8s) and subtle.
+- Saving the workout to Supabase
+- XP gain overlay, level-up, streaks, achievements
+- Rest timers, set timers, supersets
+- Editing exercises mid-session beyond add-set / complete-set
+- Any change to `/workout` (selection screen) or to `finishWorkout` in `src/lib/workout.ts`

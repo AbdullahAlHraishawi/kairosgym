@@ -1,37 +1,61 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Plus, Trash2, Check, Flame } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Plus, Flame } from "lucide-react";
 import { MobileShell } from "@/components/mobile-shell";
+import { SessionIntro } from "@/components/session-intro";
+import { SessionTimer } from "@/components/session-timer";
+import { SetRow, type SetRowState } from "@/components/set-row";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { finishWorkout, type LoggedExercise } from "@/lib/workout";
-import { XpGainOverlay } from "@/components/xp-gain-overlay";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/workout/log")({
   head: () => ({
     meta: [
-      { title: "Active workout — KAIROS" },
-      { name: "description", content: "Log sets, reps, and weight for your active workout." },
+      { title: "Active session — KAIROS" },
+      { name: "description", content: "Active workout session." },
     ],
   }),
   component: LogPage,
 });
 
 type ExerciseInfo = { id: string; name: string; muscle_group: string };
-type SetRow = { weight: number; reps: number; done: boolean };
-type EntryState = { info: ExerciseInfo; sets: SetRow[] };
+type Entry = { info: ExerciseInfo; sets: SetRowState[] };
+
+const SUBTITLES = [
+  "Forge your limits.",
+  "Stay disciplined.",
+  "Earn every rep.",
+  "Outwork yesterday.",
+];
+
+const MUSCLE_TO_TITLE: Record<string, string> = {
+  Arms: "ARM DAY",
+  Chest: "CHEST DAY",
+  Back: "BACK DAY",
+  Legs: "LEG DAY",
+  Shoulders: "SHOULDER DAY",
+};
+
+function deriveTitle(entries: Entry[]): string {
+  if (entries.length === 0) return "TRAINING DAY";
+  const counts: Record<string, number> = {};
+  for (const e of entries) {
+    counts[e.info.muscle_group] = (counts[e.info.muscle_group] ?? 0) + 1;
+  }
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+  return (top && MUSCLE_TO_TITLE[top]) || "TRAINING DAY";
+}
 
 function LogPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [entries, setEntries] = useState<EntryState[]>([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [overlay, setOverlay] = useState<{
-    xp: number;
-    leveled: boolean;
-    newLevel: number;
-  } | null>(null);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const startedAtRef = useRef<number>(Date.now());
+  const subtitle = useMemo(
+    () => SUBTITLES[Math.floor(Math.random() * SUBTITLES.length)],
+    [],
+  );
+  const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -52,13 +76,17 @@ function LogPage() {
         setEntries(
           ordered.map((info) => ({
             info,
-            sets: [{ weight: 0, reps: 0, done: false }],
-          }))
+            sets: [
+              { weight: 0, reps: 0, done: false },
+              { weight: 0, reps: 0, done: false },
+              { weight: 0, reps: 0, done: false },
+            ],
+          })),
         );
       });
   }, []);
 
-  const updateSet = (ei: number, si: number, patch: Partial<SetRow>) => {
+  const updateSet = (ei: number, si: number, patch: Partial<SetRowState>) => {
     setEntries((prev) => {
       const next = [...prev];
       const sets = [...next[ei].sets];
@@ -82,187 +110,117 @@ function LogPage() {
       return next;
     });
 
-  const removeEntry = (ei: number) =>
-    setEntries((p) => p.filter((_, i) => i !== ei));
-
-  const finish = async () => {
-    const payload: LoggedExercise[] = entries
-      .map((e) => ({
-        exerciseId: e.info.id,
-        sets: e.sets
-          .filter((s) => s.done && s.reps > 0)
-          .map((s) => ({ weight: s.weight, reps: s.reps })),
-      }))
-      .filter((e) => e.sets.length > 0);
-
-    if (payload.length === 0) {
-      toast.error("Mark at least one completed set.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const res = await finishWorkout(payload);
-      sessionStorage.removeItem("kairos_picked");
-      if (res.unlockedAchievements.length) {
-        res.unlockedAchievements.forEach((a) =>
-          toast.success(`🏆 Unlocked: ${a.name}`)
-        );
-      }
-      if (res.newStreak > 1) {
-        toast(`🔥 ${res.newStreak}-day streak`, { duration: 2200 });
-      }
-      setOverlay({ xp: res.xpEarned, leveled: res.leveledUp, newLevel: res.newLevel });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save workout");
-    } finally {
-      setSubmitting(false);
-    }
+  const completeSession = () => {
+    setExiting(true);
+    sessionStorage.removeItem("kairos_picked");
+    setTimeout(() => navigate({ to: "/" }), 350);
   };
 
-  const totalSetsDone = entries.reduce(
-    (s, e) => s + e.sets.filter((x) => x.done).length,
-    0
-  );
+  const title = deriveTitle(entries);
 
   return (
     <MobileShell hideNav>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <Link
-          to="/workout"
-          className="press flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <div className="text-center">
-          <div className="text-foreground text-base font-bold uppercase tracking-wider">
-            Active Workout
-          </div>
-          <div className="text-[11px] text-muted-foreground">
-            {totalSetsDone} sets · +{100 + totalSetsDone * 10} XP
-          </div>
-        </div>
-        <div className="w-10" />
-      </div>
+      <SessionIntro />
 
-      {entries.length === 0 ? (
-        <div className="mt-20 text-center">
-          <div className="text-muted-foreground">No exercises picked.</div>
+      <div
+        className={`transition-opacity duration-300 ${exiting ? "opacity-0" : "opacity-100"}`}
+      >
+        {/* Top bar */}
+        <div className="flex items-center justify-between">
           <Link
             to="/workout"
-            className="press bg-primary text-primary-foreground shadow-glow mt-6 inline-flex rounded-xl px-5 py-2.5 text-sm font-bold uppercase tracking-wider"
+            className="press flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
           >
-            Pick exercises
+            <ArrowLeft className="h-4 w-4" />
           </Link>
+          <div className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
+            Active Session
+          </div>
+          <div className="w-10" />
         </div>
-      ) : (
-        <div className="mt-6 space-y-4">
-          {entries.map((entry, ei) => (
-            <div
-              key={entry.info.id}
-              className="bg-card animate-fade-up rounded-2xl border border-border p-4"
+
+        {/* Hero */}
+        <div className="mt-6 text-center animate-fade-up">
+          <div
+            className="text-foreground text-3xl font-black uppercase tracking-[0.25em]"
+            style={{ textShadow: "0 0 20px var(--primary-glow)" }}
+          >
+            {title}
+          </div>
+          <div className="mt-3 flex justify-center">
+            <SessionTimer startedAt={startedAtRef.current} />
+          </div>
+          <div className="mt-2 text-xs italic text-muted-foreground">
+            {subtitle}
+          </div>
+        </div>
+
+        {entries.length === 0 ? (
+          <div className="mt-20 text-center">
+            <div className="text-muted-foreground">No exercises picked.</div>
+            <Link
+              to="/workout"
+              className="press bg-primary text-primary-foreground shadow-glow mt-6 inline-flex rounded-xl px-5 py-2.5 text-sm font-bold uppercase tracking-wider"
             >
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-bold">{entry.info.name}</div>
-                  <div className="text-[11px] text-muted-foreground">
+              Pick exercises
+            </Link>
+          </div>
+        ) : (
+          <div className="mt-8 space-y-4 pb-32">
+            {entries.map((entry, ei) => (
+              <div
+                key={entry.info.id}
+                className="card-premium animate-fade-up rounded-2xl p-4"
+                style={{ animationDelay: `${ei * 60}ms` }}
+              >
+                <div className="mb-3 flex items-baseline justify-between">
+                  <div className="text-base font-black uppercase tracking-wider">
+                    {entry.info.name}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                     {entry.info.muscle_group}
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  {entry.sets.map((s, si) => (
+                    <SetRow
+                      key={si}
+                      index={si}
+                      set={s}
+                      onChange={(patch) => updateSet(ei, si, patch)}
+                    />
+                  ))}
+                </div>
+
                 <button
-                  onClick={() => removeEntry(ei)}
-                  className="press text-muted-foreground hover:text-destructive p-1"
-                  aria-label="Remove"
+                  onClick={() => addSet(ei)}
+                  className="press mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground hover:border-primary/50 transition"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Plus className="h-3.5 w-3.5" /> Add set
                 </button>
               </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-              {/* set headers */}
-              <div className="grid grid-cols-[28px_1fr_1fr_36px] gap-2 px-1 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-                <div>Set</div>
-                <div>Kg</div>
-                <div>Reps</div>
-                <div className="text-right">✓</div>
-              </div>
-
-              {entry.sets.map((s, si) => (
-                <div
-                  key={si}
-                  className={`mt-1.5 grid grid-cols-[28px_1fr_1fr_36px] items-center gap-2 rounded-lg px-1 py-1 ${
-                    s.done ? "bg-primary/10" : ""
-                  }`}
-                >
-                  <div className="text-center text-sm font-bold tabular-nums">{si + 1}</div>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={s.weight || ""}
-                    onChange={(e) =>
-                      updateSet(ei, si, { weight: parseFloat(e.target.value) || 0 })
-                    }
-                    placeholder="0"
-                    className="bg-input rounded-md border border-border px-2 py-1.5 text-sm tabular-nums outline-none ring-primary/40 focus:ring-2"
-                  />
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={s.reps || ""}
-                    onChange={(e) =>
-                      updateSet(ei, si, { reps: parseInt(e.target.value) || 0 })
-                    }
-                    placeholder="0"
-                    className="bg-input rounded-md border border-border px-2 py-1.5 text-sm tabular-nums outline-none ring-primary/40 focus:ring-2"
-                  />
-                  <button
-                    onClick={() => updateSet(ei, si, { done: !s.done })}
-                    className={`press flex h-8 w-8 items-center justify-center rounded-md justify-self-end ${
-                      s.done
-                        ? "bg-primary text-primary-foreground shadow-glow"
-                        : "bg-secondary text-muted-foreground"
-                    }`}
-                    aria-label="Toggle complete"
-                  >
-                    <Check className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-
-              <button
-                onClick={() => addSet(ei)}
-                className="press mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-              >
-                <Plus className="h-3.5 w-3.5" /> Add set
-              </button>
-            </div>
-          ))}
-
-          <Link
-            to="/workout"
-            className="press bg-card flex w-full items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-          >
-            <Plus className="h-3.5 w-3.5" /> Add exercise
-          </Link>
-
+      {/* Sticky CTA */}
+      {entries.length > 0 && (
+        <div className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 px-5 pb-5 pt-6 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(180deg, transparent 0%, var(--background) 55%)",
+          }}
+        >
           <button
-            onClick={finish}
-            disabled={submitting || totalSetsDone === 0}
-            className="press bg-primary text-primary-foreground shadow-glow animate-glow mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-bold uppercase tracking-[0.2em] disabled:opacity-50"
+            onClick={completeSession}
+            className="press bg-primary text-primary-foreground shadow-glow animate-glow pointer-events-auto flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-black uppercase tracking-[0.25em]"
           >
             <Flame className="h-5 w-5" />
-            {submitting ? "Saving..." : "Finish workout"}
+            Complete Session
           </button>
         </div>
-      )}
-
-      {overlay && (
-        <XpGainOverlay
-          xp={overlay.xp}
-          leveledUp={overlay.leveled}
-          newLevel={overlay.newLevel}
-          onDone={() => navigate({ to: "/" })}
-        />
       )}
     </MobileShell>
   );
