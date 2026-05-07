@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Search, Plus, ArrowRight, Dumbbell } from "lucide-react";
 import { MobileShell } from "@/components/mobile-shell";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,16 +15,71 @@ export const Route = createFileRoute("/workout/")({
   component: WorkoutPage,
 });
 
-type Exercise = { id: string; name: string; muscle_group: string; equipment: string };
+type Exercise = {
+  id: string;
+  name: string;
+  muscle_group: string;
+  equipment: string;
+  secondary_muscles?: string[] | null;
+  aliases?: string[] | null;
+  exercise_type?: string | null;
+  difficulty?: string | null;
+};
 
-const FILTERS = ["All", "Chest", "Back", "Legs", "Shoulders", "Arms"] as const;
+const MUSCLE_FILTERS = [
+  "All",
+  "Chest",
+  "Back",
+  "Legs",
+  "Shoulders",
+  "Arms",
+  "Core",
+  "Glutes",
+  "Forearms",
+  "Calves",
+  "Full Body",
+  "Cardio",
+] as const;
+
+const EQUIPMENT_FILTERS = [
+  "All",
+  "Barbell",
+  "Dumbbell",
+  "Cable",
+  "Machine",
+  "Bodyweight",
+  "Smith",
+  "Kettlebell",
+] as const;
+
+function initials(name: string) {
+  return name
+    .split(/[\s-]+/)
+    .map((w) => w[0])
+    .join("")
+    .toLowerCase();
+}
+
+function matchesQuery(ex: Exercise, q: string) {
+  if (!q) return true;
+  const needle = q.toLowerCase().trim();
+  if (ex.name.toLowerCase().includes(needle)) return true;
+  if (ex.muscle_group.toLowerCase().includes(needle)) return true;
+  if (ex.equipment.toLowerCase().includes(needle)) return true;
+  if ((ex.aliases ?? []).some((a) => a.toLowerCase().includes(needle))) return true;
+  if (initials(ex.name).startsWith(needle)) return true;
+  return false;
+}
 
 function WorkoutPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
+  const [muscleFilter, setMuscleFilter] = useState<(typeof MUSCLE_FILTERS)[number]>("All");
+  const [equipmentFilter, setEquipmentFilter] =
+    useState<(typeof EQUIPMENT_FILTERS)[number]>("All");
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [picked, setPicked] = useState<string[]>([]);
 
   useEffect(() => {
@@ -36,16 +91,18 @@ function WorkoutPage() {
       .from("exercises")
       .select("*")
       .order("muscle_group")
+      .order("name")
       .then(({ data }) => setExercises((data ?? []) as Exercise[]));
   }, []);
 
   const filtered = useMemo(() => {
     return exercises.filter(
       (e) =>
-        (filter === "All" || e.muscle_group === filter) &&
-        e.name.toLowerCase().includes(query.toLowerCase())
+        (muscleFilter === "All" || e.muscle_group === muscleFilter) &&
+        (equipmentFilter === "All" || e.equipment === equipmentFilter) &&
+        matchesQuery(e, deferredQuery),
     );
-  }, [exercises, filter, query]);
+  }, [exercises, muscleFilter, equipmentFilter, deferredQuery]);
 
   const toggle = (id: string) =>
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -86,14 +143,31 @@ function WorkoutPage() {
         />
       </div>
 
-      {/* Filters */}
+      {/* Filters — muscle */}
       <div className="no-scrollbar -mx-5 mt-3 flex gap-2 overflow-x-auto px-5">
-        {FILTERS.map((f) => (
+        {MUSCLE_FILTERS.map((f) => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            onClick={() => setMuscleFilter(f)}
             className={`press shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider transition ${
-              filter === f
+              muscleFilter === f
+                ? "bg-primary text-primary-foreground border-primary shadow-glow"
+                : "bg-card border-border text-muted-foreground"
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
+      {/* Filters — equipment */}
+      <div className="no-scrollbar -mx-5 mt-2 flex gap-2 overflow-x-auto px-5">
+        {EQUIPMENT_FILTERS.map((f) => (
+          <button
+            key={f}
+            onClick={() => setEquipmentFilter(f)}
+            className={`press shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider transition ${
+              equipmentFilter === f
                 ? "bg-primary text-primary-foreground border-primary shadow-glow"
                 : "bg-card border-border text-muted-foreground"
             }`}

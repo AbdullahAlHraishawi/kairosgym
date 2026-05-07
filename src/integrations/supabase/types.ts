@@ -40,22 +40,37 @@ export type Database = {
       }
       exercises: {
         Row: {
+          aliases: string[]
+          difficulty: string
           equipment: string
+          exercise_type: string
           id: string
           muscle_group: string
           name: string
+          secondary_muscles: string[]
+          slug: string
         }
         Insert: {
+          aliases?: string[]
+          difficulty?: string
           equipment?: string
+          exercise_type?: string
           id?: string
           muscle_group: string
           name: string
+          secondary_muscles?: string[]
+          slug: string
         }
         Update: {
+          aliases?: string[]
+          difficulty?: string
           equipment?: string
+          exercise_type?: string
           id?: string
           muscle_group?: string
           name?: string
+          secondary_muscles?: string[]
+          slug?: string
         }
         Relationships: []
       }
@@ -230,7 +245,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never
