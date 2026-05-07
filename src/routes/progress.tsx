@@ -196,6 +196,9 @@ function ProgressPage() {
         <Tile icon={<Clock className="h-4 w-4" />} label="Hours" value={stats.hours} />
         <Tile icon={<Flame className="h-4 w-4" />} label="Calories" value={stats.calories} />
         <Tile icon={<Trophy className="h-4 w-4" />} label="Total XP" value={profile?.total_xp ?? 0} />
+        <Tile icon={<Dumbbell className="h-4 w-4" />} label="Sets" value={stats.sets} />
+        <Tile icon={<TrendingUp className="h-4 w-4" />} label="Reps" value={stats.reps} />
+        <Tile icon={<Trophy className="h-4 w-4" />} label="Volume kg" value={stats.volume} />
       </section>
     </MobileShell>
   );
