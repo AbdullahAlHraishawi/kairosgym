@@ -1,13 +1,20 @@
 // XP & level math, titles, ranks
+export const XP_PER_LEVEL = 100;
 export const XP_PER_WORKOUT = 100;
 export const XP_PER_SET = 10;
+export const XP_SET_BONUS = 5;
 
 export function levelFromXp(xp: number): number {
-  return Math.floor(Math.sqrt(Math.max(0, xp) / 100));
+  return Math.floor(Math.max(0, xp) / XP_PER_LEVEL);
 }
 
 export function xpForLevel(level: number): number {
-  return level * level * 100;
+  return level * XP_PER_LEVEL;
+}
+
+export function xpForSet(reps: number): number {
+  const r = Number.isFinite(reps) ? Math.max(0, Math.floor(reps)) : 0;
+  return r > 0 ? r + XP_SET_BONUS : XP_SET_BONUS;
 }
 
 /** Returns { level, xpInLevel, xpForNext, progress (0..1) } */
