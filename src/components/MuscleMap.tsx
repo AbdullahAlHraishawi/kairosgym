@@ -168,8 +168,8 @@ function BodySvg({
       {/* Body silhouette fill (subtle) */}
       <path
         d={silhouette}
-        fill="hsl(var(--muted-foreground) / 0.08)"
-        stroke="hsl(var(--foreground) / 0.35)"
+        fill="color-mix(in oklab, var(--muted-foreground) 8%, transparent)"
+        stroke="color-mix(in oklab, var(--foreground) 35%, transparent)"
         strokeWidth={0.8}
         style={{
           transition: "opacity 300ms ease",
@@ -195,7 +195,7 @@ function BodySvg({
               style={{ transition: "opacity 300ms ease", opacity: op }}
             >
               {paths.map((d, i) => (
-                <path key={i} d={d} fill="hsl(var(--primary))" />
+                <path key={i} d={d} fill="var(--primary)" />
               ))}
             </g>
           );
