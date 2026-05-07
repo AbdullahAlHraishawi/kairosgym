@@ -11,6 +11,7 @@ import {
   type WorkoutForCalories,
   CAL_DISCLAIMER,
 } from "@/lib/calories";
+import { MuscleDiagram } from "@/components/MuscleDiagram";
 
 export const Route = createFileRoute("/progress")({
   head: () => ({
@@ -31,6 +32,7 @@ function ProgressPage() {
   const [weekData, setWeekData] = useState<{ day: string; xp: number }[]>([]);
   const [delta, setDelta] = useState(0);
   const [muscles, setMuscles] = useState<Set<string>>(new Set());
+  const [focusedMuscle, setFocusedMuscle] = useState<string | null>(null);
   const [stats, setStats] = useState({ workouts: 0, hours: 0, sets: 0, reps: 0, volume: 0 });
   const [workoutRows, setWorkoutRows] = useState<WorkoutForCalories[]>([]);
 
@@ -195,21 +197,27 @@ function ProgressPage() {
         <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
           Muscles trained · last 30 days
         </div>
-        <BodyMap activeMuscles={muscles} />
-        <div className="mt-3 flex flex-wrap gap-2">
+        <MuscleDiagram trainedMuscles={muscles} focusedMuscle={focusedMuscle} />
+        <div className="mt-4 flex flex-wrap gap-2">
           {["Chest", "Back", "Legs", "Shoulders", "Arms"].map((m) => {
             const on = muscles.has(m);
+            const focused = focusedMuscle === m;
             return (
-              <span
+              <button
                 key={m}
-                className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-                  on
-                    ? "bg-primary/15 border-primary/40 text-primary"
-                    : "border-border text-muted-foreground"
+                type="button"
+                aria-pressed={focused}
+                onClick={() => setFocusedMuscle(focused ? null : m)}
+                className={`press rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                  focused
+                    ? "border-primary bg-primary text-primary-foreground shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_25%,transparent)]"
+                    : on
+                      ? "bg-primary/15 border-primary/40 text-primary hover:bg-primary/25"
+                      : "border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {m}
-              </span>
+              </button>
             );
           })}
         </div>
@@ -265,30 +273,3 @@ function Tile({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
-function BodyMap({ activeMuscles }: { activeMuscles: Set<string> }) {
-  const fill = (m: string) =>
-    activeMuscles.has(m) ? "var(--primary)" : "var(--secondary)";
-  return (
-    <svg viewBox="0 0 200 220" className="mx-auto mt-3 h-44 w-full">
-      {/* head */}
-      <circle cx="100" cy="22" r="14" fill="var(--secondary)" />
-      {/* torso */}
-      <rect x="74" y="40" width="52" height="56" rx="10" fill={fill("Chest")} />
-      {/* shoulders */}
-      <circle cx="68" cy="48" r="11" fill={fill("Shoulders")} />
-      <circle cx="132" cy="48" r="11" fill={fill("Shoulders")} />
-      {/* arms */}
-      <rect x="50" y="58" width="14" height="46" rx="6" fill={fill("Arms")} />
-      <rect x="136" y="58" width="14" height="46" rx="6" fill={fill("Arms")} />
-      {/* core spacer */}
-      <rect x="80" y="98" width="40" height="22" rx="6" fill="var(--secondary)" />
-      {/* legs */}
-      <rect x="78" y="124" width="18" height="76" rx="8" fill={fill("Legs")} />
-      <rect x="104" y="124" width="18" height="76" rx="8" fill={fill("Legs")} />
-      {/* back hint label */}
-      <text x="100" y="215" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">
-        Front view
-      </text>
-    </svg>
-  );
-}
