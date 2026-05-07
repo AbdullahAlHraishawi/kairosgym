@@ -232,20 +232,54 @@ function LogPage() {
                 {lp.xpInLevel} / {lp.span} XP
               </div>
             </div>
-            <div className={showLevelUp ? "animate-glow rounded-full" : ""}>
-              <XpBar progress={lp.progress} animateKey={liveTotalXp} />
+            <div className={barPhase === "fill" ? "animate-glow rounded-full" : ""}>
+              <XpBar progress={displayProgress} disableTransition={disableBarTransition} />
             </div>
-            {showLevelUp && (
-              <div className="mt-2 flex justify-center">
+          </div>
+
+          {/* Cinematic LEVEL UP overlay */}
+          {levelUpValue !== null && (
+            <div className="pointer-events-none absolute inset-x-0 top-14 z-30 flex justify-center">
+              <div
+                className={`relative ${levelUpPhase === "out" ? "animate-level-up-out" : "animate-level-up-in"}`}
+              >
                 <div
-                  className="animate-fade-up shadow-glow rounded-full border border-primary/50 bg-primary/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-primary"
-                  style={{ textShadow: "0 0 10px var(--primary-glow)" }}
-                >
-                  ⚔ Level Up
+                  aria-hidden="true"
+                  className="animate-level-flare absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    width: 260,
+                    height: 260,
+                    background:
+                      "radial-gradient(circle, color-mix(in oklab, var(--primary-glow) 65%, transparent) 0%, transparent 70%)",
+                    filter: "blur(8px)",
+                  }}
+                />
+                <div className="relative text-center">
+                  <div className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">
+                    Level
+                  </div>
+                  <div
+                    className="text-7xl font-black tabular-nums leading-none text-foreground"
+                    style={{
+                      textShadow:
+                        "0 0 12px var(--primary-glow), 0 0 28px var(--primary-glow), 0 0 56px var(--primary)",
+                    }}
+                  >
+                    {levelUpValue}
+                  </div>
+                  <div
+                    className="mt-2 text-xl font-black uppercase tracking-[0.4em] text-primary"
+                    style={{
+                      textShadow:
+                        "0 0 8px var(--primary-glow), 0 0 18px var(--primary-glow), 0 0 36px var(--primary)",
+                    }}
+                  >
+                    Level Up
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {loadingExercises ? (
