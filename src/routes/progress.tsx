@@ -11,7 +11,7 @@ import {
   type WorkoutForCalories,
   CAL_DISCLAIMER,
 } from "@/lib/calories";
-import { MuscleDiagram } from "@/components/MuscleDiagram";
+import { MuscleMap } from "@/components/MuscleMap";
 
 export const Route = createFileRoute("/progress")({
   head: () => ({
@@ -197,7 +197,7 @@ function ProgressPage() {
         <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
           Muscles trained · last 30 days
         </div>
-        <MuscleDiagram trainedMuscles={muscles} focusedMuscle={focusedMuscle} />
+        <MuscleMap trainedMuscles={muscles} focusedMuscle={focusedMuscle} />
         <div className="mt-4 flex flex-wrap gap-2">
           {["Chest", "Back", "Legs", "Shoulders", "Arms"].map((m) => {
             const on = muscles.has(m);
