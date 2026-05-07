@@ -368,7 +368,7 @@ function LogPage() {
 
       {/* Sticky CTA */}
       {entries.length > 0 && (
-        <div className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 px-5 pb-5 pt-6 pointer-events-none"
+        <div className={`fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 px-5 pb-5 pt-6 pointer-events-none transition-opacity duration-300 ${exiting ? "opacity-0" : "opacity-100"}`}
           style={{
             background:
               "linear-gradient(180deg, transparent 0%, var(--background) 55%)",
@@ -376,6 +376,7 @@ function LogPage() {
         >
           <button
             onClick={completeSession}
+            disabled={exiting}
             className="press bg-primary text-primary-foreground shadow-glow animate-glow pointer-events-auto flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-black uppercase tracking-[0.25em]"
           >
             <Flame className="h-5 w-5" />
