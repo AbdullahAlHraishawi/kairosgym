@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Plus, Flame } from "lucide-react";
+import { ArrowLeft, Plus, Flame, Loader2 } from "lucide-react";
 import { MobileShell } from "@/components/mobile-shell";
 import { SessionIntro } from "@/components/session-intro";
 import { SessionTimer } from "@/components/session-timer";
@@ -38,7 +38,9 @@ function LogPage() {
   const { profile } = useProfile(user?.id);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loadingExercises, setLoadingExercises] = useState(true);
-  const startedAtRef = useRef<number>(Date.now());
+  const [intro, setIntro] = useState(true);
+  const startedAtRef = useRef<number | null>(null);
+  const [, forceTick] = useState(0);
   const subtitle = useMemo(
     () => SUBTITLES[Math.floor(Math.random() * SUBTITLES.length)],
     [],
@@ -59,6 +61,7 @@ function LogPage() {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [loading, user, navigate]);
 
+  // Fetch exercises during the intro splash so they're ready when it ends
   useEffect(() => {
     const raw = sessionStorage.getItem("kairos_picked");
     const ids: string[] = raw ? JSON.parse(raw) : [];
@@ -88,6 +91,12 @@ function LogPage() {
       });
   }, []);
 
+  const handleIntroDone = () => {
+    startedAtRef.current = Date.now();
+    setIntro(false);
+    forceTick((n) => n + 1);
+  };
+
   // Live session XP from completed sets only
   const sessionXp = useMemo(
     () =>
@@ -102,18 +111,21 @@ function LogPage() {
   const liveTotalXp = (baseXp ?? profile?.total_xp ?? 0) + sessionXp;
   const lp = levelProgress(liveTotalXp);
 
-  // Detect level-up
-  const prevLevelRef = useRef<number>(lp.level);
+  // Detect level-up (only after baseline XP is known, so initial profile load doesn't trigger it)
+  const prevLevelRef = useRef<number | null>(null);
   useEffect(() => {
+    if (baseXp === null) return;
+    if (prevLevelRef.current === null) {
+      prevLevelRef.current = lp.level;
+      return;
+    }
     if (lp.level > prevLevelRef.current) {
       const newLevel = lp.level;
-      // Bar: fill to 100% briefly, snap to 0, then settle to real progress
       setBarPhase("fill");
       const t1 = setTimeout(() => setBarPhase("snap"), 500);
       const t2 = setTimeout(() => setBarPhase("settle"), 560);
       const t3 = setTimeout(() => setBarPhase("normal"), 620);
 
-      // Overlay
       setLevelUpValue(newLevel);
       setLevelUpPhase("in");
       const t4 = setTimeout(() => setLevelUpPhase("out"), 2900);
@@ -129,7 +141,7 @@ function LogPage() {
       };
     }
     prevLevelRef.current = lp.level;
-  }, [lp.level]);
+  }, [lp.level, baseXp]);
 
   const displayProgress =
     barPhase === "fill" ? 1 : barPhase === "snap" ? 0 : lp.progress;
@@ -190,24 +202,29 @@ function LogPage() {
       return;
     }
     try {
-      const res = await finishWorkout(logged, new Date(startedAtRef.current));
-      setTimeout(
-        () =>
-          navigate({ to: "/workout/complete", search: { id: res.workoutId } }),
-        350,
-      );
+      const res = await finishWorkout(logged, new Date(startedAtRef.current ?? Date.now()));
+      navigate({ to: "/workout/complete", search: { id: res.workoutId } });
     } catch (e) {
       console.error("finishWorkout failed", e);
-      setTimeout(() => navigate({ to: "/" }), 350);
+      navigate({ to: "/" });
     }
   };
 
   return (
     <MobileShell hideNav>
-      <SessionIntro />
+      {intro && <SessionIntro onDone={handleIntroDone} />}
+
+      {exiting && (
+        <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+          <Loader2 className="h-14 w-14 animate-spin text-primary drop-shadow-[0_0_18px_var(--primary-glow)]" />
+          <div className="mt-5 text-[11px] font-black uppercase tracking-[0.4em] text-muted-foreground">
+            Saving session…
+          </div>
+        </div>
+      )}
 
       <div
-        className={`transition-opacity duration-300 ${exiting ? "opacity-0" : "opacity-100"}`}
+        className={`transition-opacity duration-300 ${exiting || intro ? "opacity-0" : "opacity-100"}`}
       >
         {/* Sticky session header */}
         <div
@@ -235,7 +252,7 @@ function LogPage() {
           {/* Hero */}
           <div className="mt-3 text-center animate-fade-up">
             <div className="flex justify-center">
-              <SessionTimer startedAt={startedAtRef.current} />
+              <SessionTimer startedAt={startedAtRef.current ?? Date.now()} />
             </div>
             <div className="mt-1 text-xs italic text-muted-foreground">
               {subtitle}
