@@ -6,7 +6,11 @@ import { MobileShell } from "@/components/mobile-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { supabase } from "@/integrations/supabase/client";
-import { estimateCalories, CAL_DISCLAIMER } from "@/lib/calories";
+import {
+  sumWorkoutCalories,
+  type WorkoutForCalories,
+  CAL_DISCLAIMER,
+} from "@/lib/calories";
 
 export const Route = createFileRoute("/progress")({
   head: () => ({
@@ -27,7 +31,8 @@ function ProgressPage() {
   const [weekData, setWeekData] = useState<{ day: string; xp: number }[]>([]);
   const [delta, setDelta] = useState(0);
   const [muscles, setMuscles] = useState<Set<string>>(new Set());
-  const [stats, setStats] = useState({ workouts: 0, hours: 0, totalSecs: 0, sets: 0, reps: 0, volume: 0 });
+  const [stats, setStats] = useState({ workouts: 0, hours: 0, sets: 0, reps: 0, volume: 0 });
+  const [workoutRows, setWorkoutRows] = useState<WorkoutForCalories[]>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
