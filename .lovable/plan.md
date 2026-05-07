@@ -1,39 +1,28 @@
-## What you're seeing
+## Approach
 
-My hand-authored SVG paths look amateur — that's on me. Trying to draw an anatomically credible body silhouette + 20 muscle regions by hand in path commands was the wrong approach. The result is the cartoonish blobs in your screenshot.
+I'll **generate a realistic anatomy body image sized to match the library's exact proportions** (viewBox `0 0 100 200`, so 1:2 aspect), then render the library's `<Model>` on top with `bodyColor="transparent"`. The result: photoreal body underneath, library's pixel-accurate muscle polygons glowing red on top.
 
-## Fix: use `react-body-highlighter`
+This gets you the realistic look you want **with the library's full accuracy preserved** — no hand-tracing, no alignment guesswork. The library polygons were drawn to canonical anatomy positions, so a realistically proportioned body underneath will line up.
 
-A small (~15KB, zero-dep) library purpose-built for exactly this. It ships proven anterior + posterior SVG polygons for every muscle group, takes a `data` array of "exercises → muscles" and a `highlightedColors` array, and renders a clean professional body diagram. Used by other fitness apps. MIT licensed.
+(Note: this is technically a refined version of "library polygons over realistic body" — but because I'll generate the body to match the library's exact viewBox and pose, the mismatch concern from my earlier question disappears.)
 
-### What I'll do
+## Steps
 
-1. **Install** `react-body-highlighter`.
-2. **Rewrite `src/components/MuscleMap.tsx`** to wrap two `<Model />` instances (one `type="anterior"`, one `type="posterior"`). Same props as today: `trainedMuscles`, `focusedMuscle`, `view`, `className`. Internally I map our 5 high-level groups to the library's fine-grained muscle keys:
-   - `Chest` → `chest`
-   - `Back` → `trapezius`, `upper-back`, `lower-back`
-   - `Shoulders` → `front-deltoids`, `back-deltoids`
-   - `Arms` → `biceps`, `triceps`, `forearm`
-   - `Legs` → `quadriceps`, `hamstring`, `calves`, `gluteal`
-3. **Drive colors via `data` + `highlightedColors`**:
-   - Build a `data` array where each trained group contributes an entry with its mapped muscles.
-   - When `focusedMuscle` is set, only the focused group's muscles get the bright `var(--primary)` color; trained-but-not-focused get a dim red; untrained stay at `bodyColor` (a muted neutral).
-   - When no focus, all trained groups render at the standard red.
-4. **Style**: pass `bodyColor` as a muted dark-surface token (resolved from the CSS var at runtime via `getComputedStyle`) so the unhighlighted body matches the card. SVG style: `width: 100%`, no padding.
-5. **No more PNGs, no more hand-drawn paths.** The component stays a drop-in for anywhere else in the app.
+1. **Generate two body images** with `imagegen` (premium tier) — `body-anatomy-front.png` and `body-anatomy-back.png`. Strict prompt: dark grey muscular anatomy reference figure, arms straight down at sides slightly out, feet together, perfectly symmetric, head included, transparent background, 1:2 portrait aspect, neutral pose matching anatomical reference posters. Same model, same pose, front then back.
 
-### Verification
+2. **Update `MuscleMap.tsx`**:
+   - Wrap each `<Model>` in a relative container.
+   - Render the corresponding body PNG as `<img>` absolutely positioned, full size, behind the SVG.
+   - Set `bodyColor="transparent"` and a subtle `svgStyle={{ position: "absolute", inset: 0 }}` so only the highlighted polygons paint over the body.
+   - Untrained-when-focused gets `bodyColor="transparent"` too — the realistic body underneath naturally shows the dimmed state.
 
-After implementing, open `/progress` in the browser tool and screenshot:
-- Default view: trained muscles (Chest, Back, Shoulders, Arms, Legs from current mock) glow red on the right anatomy positions.
-- Tap each filter → only that group brightens, others dim.
-- Anatomy looks credible (real pecs/lats/quads, not blobs).
+3. **Verify**: open `/progress` (after you log in), screenshot, confirm: body looks realistic, red highlights land on the right muscles, filters work.
 
-### Out of scope
+## Out of scope
 
-- Wiring the component into other tabs (you said "later").
-- Click-on-muscle interaction (library supports it; not requested).
+- Hand-traced custom polygons. The library's polygons are already accurate; tracing them by hand would only make it worse.
+- Multiple body types/genders.
 
-### Risk note
+## Risk
 
-`react-body-highlighter` is React-only and pure SVG with zero deps — safe for the TanStack Start SSR/Worker runtime (no `window`, no native modules). If for any reason it choked on SSR, fallback is dynamic-import behind a client-only guard.
+If the generated body's proportions drift from the library's polygon positions (e.g., shoulders too wide), highlights will sit slightly off the muscle. Mitigation: I'll generate, screenshot, and iterate the body image if alignment is off — body is just a PNG swap, no code changes needed.
