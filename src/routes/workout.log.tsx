@@ -50,6 +50,7 @@ function LogPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [loadingExercises, setLoadingExercises] = useState(true);
   const startedAtRef = useRef<number>(Date.now());
   const subtitle = useMemo(
     () => SUBTITLES[Math.floor(Math.random() * SUBTITLES.length)],
@@ -64,7 +65,10 @@ function LogPage() {
   useEffect(() => {
     const raw = sessionStorage.getItem("kairos_picked");
     const ids: string[] = raw ? JSON.parse(raw) : [];
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      setLoadingExercises(false);
+      return;
+    }
     void supabase
       .from("exercises")
       .select("id, name, muscle_group")
@@ -83,6 +87,7 @@ function LogPage() {
             ],
           })),
         );
+        setLoadingExercises(false);
       });
   }, []);
 
@@ -155,7 +160,16 @@ function LogPage() {
           </div>
         </div>
 
-        {entries.length === 0 ? (
+        {loadingExercises ? (
+          <div className="mt-8 space-y-4">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="card-premium h-40 rounded-2xl animate-pulse opacity-60"
+              />
+            ))}
+          </div>
+        ) : entries.length === 0 ? (
           <div className="mt-20 text-center">
             <div className="text-muted-foreground">No exercises picked.</div>
             <Link

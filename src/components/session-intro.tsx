@@ -7,7 +7,7 @@ export function SessionIntro({ onDone }: { onDone?: () => void }) {
     const t = setTimeout(() => {
       setVisible(false);
       onDone?.();
-    }, 1100);
+    }, 850);
     return () => clearTimeout(t);
   }, [onDone]);
 
@@ -15,7 +15,7 @@ export function SessionIntro({ onDone }: { onDone?: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 backdrop-blur-sm animate-fade-up"
+      className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm animate-fade-up"
       aria-hidden="true"
     >
       <div className="text-center">
