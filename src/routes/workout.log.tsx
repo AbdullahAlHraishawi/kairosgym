@@ -5,8 +5,12 @@ import { MobileShell } from "@/components/mobile-shell";
 import { SessionIntro } from "@/components/session-intro";
 import { SessionTimer } from "@/components/session-timer";
 import { SetRow, type SetRowState } from "@/components/set-row";
+import { XpBar } from "@/components/xp-bar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useProfile } from "@/hooks/use-profile";
+import { levelProgress, xpForSet } from "@/lib/xp";
+import { persistSessionXp } from "@/lib/workout";
 
 export const Route = createFileRoute("/workout/log")({
   head: () => ({
@@ -31,6 +35,7 @@ const SUBTITLES = [
 function LogPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { profile } = useProfile(user?.id);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loadingExercises, setLoadingExercises] = useState(true);
   const startedAtRef = useRef<number>(Date.now());
@@ -39,6 +44,14 @@ function LogPage() {
     [],
   );
   const [exiting, setExiting] = useState(false);
+  const [floaters, setFloaters] = useState<Record<string, number | null>>({});
+  const [showLevelUp, setShowLevelUp] = useState(false);
+
+  // Snapshot baseline XP once when profile first arrives
+  const [baseXp, setBaseXp] = useState<number | null>(null);
+  useEffect(() => {
+    if (baseXp === null && profile) setBaseXp(profile.total_xp);
+  }, [profile, baseXp]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -73,15 +86,53 @@ function LogPage() {
       });
   }, []);
 
+  // Live session XP from completed sets only
+  const sessionXp = useMemo(
+    () =>
+      entries.reduce(
+        (sum, e) =>
+          sum + e.sets.reduce((s, st) => s + (st.done ? xpForSet(st.reps) : 0), 0),
+        0,
+      ),
+    [entries],
+  );
+
+  const liveTotalXp = (baseXp ?? profile?.total_xp ?? 0) + sessionXp;
+  const lp = levelProgress(liveTotalXp);
+
+  // Detect level-up
+  const prevLevelRef = useRef<number>(lp.level);
+  useEffect(() => {
+    if (lp.level > prevLevelRef.current) {
+      setShowLevelUp(true);
+      const t = setTimeout(() => setShowLevelUp(false), 1800);
+      prevLevelRef.current = lp.level;
+      return () => clearTimeout(t);
+    }
+    prevLevelRef.current = lp.level;
+  }, [lp.level]);
+
   const updateSet = (ei: number, si: number, patch: Partial<SetRowState>) => {
     setEntries((prev) => {
       const next = [...prev];
       const sets = [...next[ei].sets];
-      sets[si] = { ...sets[si], ...patch };
+      const before = sets[si];
+      const after = { ...before, ...patch };
+      sets[si] = after;
       next[ei] = { ...next[ei], sets };
+
+      // Trigger floater on done false -> true
+      if (!before.done && after.done) {
+        const xp = xpForSet(after.reps);
+        const key = `${ei}-${si}`;
+        setFloaters((f) => ({ ...f, [key]: xp }));
+      }
       return next;
     });
   };
+
+  const clearFloater = (key: string) =>
+    setFloaters((f) => ({ ...f, [key]: null }));
 
   const addSet = (ei: number) =>
     setEntries((prev) => {
@@ -97,9 +148,14 @@ function LogPage() {
       return next;
     });
 
-  const completeSession = () => {
+  const completeSession = async () => {
     setExiting(true);
     sessionStorage.removeItem("kairos_picked");
+    try {
+      if (sessionXp > 0) await persistSessionXp(sessionXp);
+    } catch (e) {
+      console.error("persistSessionXp failed", e);
+    }
     setTimeout(() => navigate({ to: "/" }), 350);
   };
 
@@ -110,27 +166,62 @@ function LogPage() {
       <div
         className={`transition-opacity duration-300 ${exiting ? "opacity-0" : "opacity-100"}`}
       >
-        {/* Top bar */}
-        <div className="flex items-center justify-between">
-          <Link
-            to="/workout"
-            className="press flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
-            Active Session
+        {/* Sticky session header */}
+        <div
+          className="sticky top-0 z-20 -mx-5 px-5 pt-3 pb-4 backdrop-blur-md"
+          style={{
+            background:
+              "linear-gradient(180deg, color-mix(in oklab, var(--background) 92%, transparent) 0%, color-mix(in oklab, var(--background) 80%, transparent) 100%)",
+            borderBottom: "1px solid color-mix(in oklab, var(--border) 60%, transparent)",
+          }}
+        >
+          {/* Top bar */}
+          <div className="flex items-center justify-between">
+            <Link
+              to="/workout"
+              className="press flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <div className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
+              Active Session
+            </div>
+            <div className="w-10" />
           </div>
-          <div className="w-10" />
-        </div>
 
-        {/* Hero */}
-        <div className="mt-6 text-center animate-fade-up">
-          <div className="flex justify-center">
-            <SessionTimer startedAt={startedAtRef.current} />
+          {/* Hero */}
+          <div className="mt-3 text-center animate-fade-up">
+            <div className="flex justify-center">
+              <SessionTimer startedAt={startedAtRef.current} />
+            </div>
+            <div className="mt-1 text-xs italic text-muted-foreground">
+              {subtitle}
+            </div>
           </div>
-          <div className="mt-2 text-xs italic text-muted-foreground">
-            {subtitle}
+
+          {/* Live XP */}
+          <div className="mt-4">
+            <div className="mb-1.5 flex items-baseline justify-between">
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                Level {lp.level}
+              </div>
+              <div className="text-[11px] font-semibold tabular-nums text-muted-foreground">
+                {lp.xpInLevel} / {lp.span} XP
+              </div>
+            </div>
+            <div className={showLevelUp ? "animate-glow rounded-full" : ""}>
+              <XpBar progress={lp.progress} animateKey={liveTotalXp} />
+            </div>
+            {showLevelUp && (
+              <div className="mt-2 flex justify-center">
+                <div
+                  className="animate-fade-up shadow-glow rounded-full border border-primary/50 bg-primary/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-primary"
+                  style={{ textShadow: "0 0 10px var(--primary-glow)" }}
+                >
+                  ⚔ Level Up
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -154,7 +245,7 @@ function LogPage() {
             </Link>
           </div>
         ) : (
-          <div className="mt-8 space-y-4 pb-32">
+          <div className="mt-6 space-y-4 pb-32">
             {entries.map((entry, ei) => (
               <div
                 key={entry.info.id}
@@ -171,14 +262,19 @@ function LogPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {entry.sets.map((s, si) => (
-                    <SetRow
-                      key={si}
-                      index={si}
-                      set={s}
-                      onChange={(patch) => updateSet(ei, si, patch)}
-                    />
-                  ))}
+                  {entry.sets.map((s, si) => {
+                    const key = `${ei}-${si}`;
+                    return (
+                      <SetRow
+                        key={si}
+                        index={si}
+                        set={s}
+                        onChange={(patch) => updateSet(ei, si, patch)}
+                        floatXp={floaters[key] ?? null}
+                        onFloatDone={() => clearFloater(key)}
+                      />
+                    );
+                  })}
                 </div>
 
                 <button
