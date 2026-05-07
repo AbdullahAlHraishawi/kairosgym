@@ -1,61 +1,62 @@
 ## Goal
-Replace the simplistic SVG body in `src/routes/progress.tsx` (`BodyMap`) with a premium anatomical muscle-diagram component matching KAIROS's dark/red aesthetic, showing front + back views side by side inside the existing "Muscles Trained" card.
+Make the highlight follow the actual muscle shapes (like the reference image) instead of soft red ellipses floating over the body.
 
-## Approach
+## Why the current version looks "off"
+`MuscleDiagram.tsx` paints `<ellipse>` blobs with `mixBlendMode: screen`. The blobs don't match the muscle silhouettes in the generated anatomy PNG, so the glow looks like stickers, not lit-up muscles.
 
-### 1. Generate anatomy art (premium AI)
-Generate two transparent PNGs in the KAIROS style — dark gray base muscles, clean black outlines, no head detail clutter, no background:
-- `src/assets/body-front.png`
-- `src/assets/body-back.png`
+## Approach: per-muscle mask overlays
 
-Prompt direction: stylized anatomical fitness chart, full body, clearly delineated muscle groups (chest, shoulders, arms, abs, quads, calves on front; traps, lats, rear delts, triceps, glutes, hamstrings, calves on back), neutral standing pose, dark gray (#3a3a3a-ish) muscles with crisp black separation lines, no color highlights baked in, transparent background, premium editorial fitness-app look.
+For each body view, generate a set of **transparent PNG masks** that are pixel-aligned to the existing `body-front.png` / `body-back.png`. Each mask is white where its muscle group lives, transparent elsewhere. We then render a red-tinted `<div>` per muscle group whose visible shape is cut out by `mask-image: url(mask.png)`. Result: only the actual muscle silhouettes glow red, exactly like the reference photo.
 
-If a single generation pass doesn't deliver the quality bar, iterate (regenerate / edit_image) until both views are clean and symmetrical. QA each image visually before wiring in.
+### 1. Generate aligned masks (premium AI, transparent PNG, same 1024x1536 frame as the body assets)
 
-### 2. New `MuscleDiagram` component
-New file `src/components/MuscleDiagram.tsx`.
+Front:
+- `src/assets/mask-front-chest.png` — both pectorals
+- `src/assets/mask-front-shoulders.png` — front delts
+- `src/assets/mask-front-arms.png` — biceps + forearms (both sides)
+- `src/assets/mask-front-legs.png` — quads + calves (both sides)
 
-Props:
-```ts
-{
-  trainedMuscles: Set<string>;   // muscles trained in last 30d (base red tint)
-  focusedMuscle?: string | null; // pill tap → emphasize one, dim others
-  frontBodyImage?: string;       // override default asset
-  backBodyImage?: string;
-}
+Back:
+- `src/assets/mask-back-back.png` — traps + lats
+- `src/assets/mask-back-shoulders.png` — rear delts
+- `src/assets/mask-back-arms.png` — triceps + forearms
+- `src/assets/mask-back-legs.png` — glutes + hamstrings + calves
+
+Each generated as a white silhouette on transparent background, traced to the same body proportions as the existing assets. QA each visually before wiring in; regenerate any that drift.
+
+### 2. Rewrite `MuscleDiagram.tsx`
+
+Replace the SVG ellipse system with a stack of mask layers:
+
+```text
+[ body image (dimmed when a filter is focused) ]
+[ red layer masked by chest    ]  ← visible only if trained or focused
+[ red layer masked by shoulders ]
+[ red layer masked by arms      ]
+[ red layer masked by legs/back ]
+[ optional soft red blur layer behind, also masked, for the glow halo ]
 ```
 
-Rendering strategy (CSS-overlay, no manual SVG anatomy):
-- Two stacked containers side-by-side (front | back), each `relative`.
-- Base layer: `<img>` of the anatomy asset (dark gray muscles).
-- Overlay layer per muscle group: an absolutely-positioned `<div>` whose shape is defined by a CSS `mask-image` cut from a small companion SVG/PNG mask OR by a hand-tuned `clip-path` polygon. Each overlay is filled with `var(--primary)` (red) for trained muscles, `oklch(... / 0.5)` muted orange for secondary, transparent otherwise.
-- Smooth `transition-opacity duration-300` on overlays for filter changes.
-- Dim non-focused muscles by lowering opacity of their overlay (and applying a subtle dark scrim over the base image) when `focusedMuscle` is set.
+Per layer:
+- `background: var(--primary)` for the solid red tint, plus a second behind-layer with `filter: blur(8px)` and lower opacity for the outer glow.
+- `mask-image: url(...); mask-size: 100% 100%; mask-repeat: no-repeat;` (with `-webkit-mask-*` fallbacks).
+- `mix-blend-mode: multiply` on the solid layer so it tints the underlying muscle shading instead of flat-painting it; `screen` on the blur layer for the halo.
+- Opacity logic stays the same as today:
+  - no focus + trained → full glow
+  - focused muscle → full glow + stronger blur halo
+  - other muscles when something is focused → fade to ~0.15
+  - untrained + nothing focused → 0
 
-Muscle → region map (front/back, normalized % coords) covers: Chest, Shoulders, Arms, Abs (decorative), Legs (front quads + back hamstrings/glutes), Back (lats/traps).
-
-If clip-path tuning proves fragile against the generated art, fall back to lightweight hand-authored SVG region overlays sized to match the asset's anatomical landmarks. Both approaches keep the asset swappable via props.
-
-### 3. Wire into `progress.tsx`
-- Replace `<BodyMap activeMuscles={muscles} />` with `<MuscleDiagram trainedMuscles={muscles} focusedMuscle={focused} />`.
-- Add `const [focused, setFocused] = useState<string | null>(null);`
-- Convert the pill row from `<span>` to `<button>`:
-  - Tap = toggle focus on that muscle.
-  - Visual states unchanged (trained = red pill, untrained = muted, focused = red ring).
-- Delete the old `BodyMap` function.
-- Keep card chrome (`card-premium rounded-2xl p-5`), heading copy, spacing.
-
-### 4. Layered filter behavior
-- No filter focused → trained muscles glow red, untrained stay dark gray.
-- Filter focused → focused group becomes brighter red with subtle glow, all other overlays fade to ~25% opacity, base body slightly dims via a scrim. 300ms transitions.
+### 3. No changes elsewhere
+`progress.tsx` keeps the same `<MuscleDiagram trainedMuscles focusedMuscle />` API. Pills, card chrome, data source untouched.
 
 ## Out of scope
-- Data source for `muscles` (unchanged).
-- Other progress-page sections.
-- Workout logging flows.
+- Re-generating the base body PNGs.
+- Workout/session logic.
+- Other progress sections.
 
 ## Technical notes
-- Assets imported as ES6: `import frontBody from "@/assets/body-front.png"`.
-- All colors via tokens (`var(--primary)`, `var(--secondary)`, `var(--muted-foreground)`); no hardcoded hex in component.
-- Mobile-first: side-by-side layout uses `grid grid-cols-2 gap-3`; each body fills its column with `w-full h-auto object-contain`.
-- Accessibility: each pill is a `button` with `aria-pressed`; images get descriptive `alt`.
+- All masks share the body's aspect ratio so they line up automatically inside the existing `aspect-[2/3]` container — no per-region coords to maintain.
+- Colors stay token-based (`var(--primary)`); no hardcoded hex.
+- Masks are static assets, imported via ES6 (`import chestMask from "@/assets/mask-front-chest.png"`).
+- If a generated mask is slightly misaligned, we can nudge it with `transform: scale()/translate()` per layer rather than regenerating.
