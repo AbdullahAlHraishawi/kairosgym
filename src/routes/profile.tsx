@@ -17,12 +17,12 @@ import { XpBar } from "@/components/xp-bar";
 import { AtmoCard } from "@/components/atmo-card";
 import { BadgeEmblem } from "@/components/badge-emblem";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -261,14 +261,14 @@ function ProfilePage() {
         </div>
       </section>
 
-      <Dialog open={weightOpen} onOpenChange={setWeightOpen}>
-        <DialogContent className="card-premium">
-          <DialogHeader>
-            <DialogTitle className="text-display uppercase tracking-widest">
+      <Drawer open={weightOpen} onOpenChange={setWeightOpen}>
+        <DrawerContent className="card-premium">
+          <DrawerHeader>
+            <DrawerTitle className="text-display uppercase tracking-widest text-center">
               Body weight
-            </DialogTitle>
-          </DialogHeader>
-          <div className="mt-2">
+            </DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-2">
             <label className="text-[11px] uppercase tracking-widest text-muted-foreground">
               Weight (kg)
             </label>
@@ -288,16 +288,16 @@ function ProfilePage() {
               Used only to estimate calories burned during your sessions.
             </p>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setWeightOpen(false)}>
+          <DrawerFooter className="flex-row gap-2">
+            <Button variant="ghost" className="flex-1" onClick={() => setWeightOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={saveWeight} disabled={savingWeight}>
+            <Button className="flex-1" onClick={saveWeight} disabled={savingWeight}>
               {savingWeight ? "Saving…" : "Save"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </MobileShell>
   );
 }
