@@ -190,7 +190,7 @@ function LogPage() {
       return;
     }
     try {
-      const res = await finishWorkout(logged);
+      const res = await finishWorkout(logged, new Date(startedAtRef.current));
       setTimeout(
         () =>
           navigate({ to: "/workout/complete", search: { id: res.workoutId } }),

@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { levelFromXp, XP_PER_SET, XP_PER_WORKOUT } from "./xp";
+import { levelFromXp, xpForSet } from "./xp";
 
 export interface LoggedExercise {
   exerciseId: string;
@@ -25,7 +25,10 @@ function isYesterday(prev: Date, today: Date) {
   return isSameDay(prev, y);
 }
 
-export async function finishWorkout(exercises: LoggedExercise[]): Promise<FinishResult> {
+export async function finishWorkout(
+  exercises: LoggedExercise[],
+  startedAt?: Date,
+): Promise<FinishResult> {
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
   if (!user) throw new Error("Not signed in");
@@ -33,13 +36,21 @@ export async function finishWorkout(exercises: LoggedExercise[]): Promise<Finish
   const validEx = exercises.filter((e) => e.sets.length > 0);
   if (validEx.length === 0) throw new Error("Add at least one set before finishing.");
 
-  const totalSets = validEx.reduce((s, e) => s + e.sets.length, 0);
-  const xpEarned = XP_PER_WORKOUT + totalSets * XP_PER_SET;
+  const xpEarned = validEx.reduce(
+    (sum, e) => sum + e.sets.reduce((s, set) => s + xpForSet(set.reps), 0),
+    0,
+  );
 
+  const finishedAt = new Date();
   // 1. create workout
   const { data: workout, error: wErr } = await supabase
     .from("workouts")
-    .insert({ user_id: user.id, finished_at: new Date().toISOString(), xp_earned: xpEarned })
+    .insert({
+      user_id: user.id,
+      started_at: (startedAt ?? finishedAt).toISOString(),
+      finished_at: finishedAt.toISOString(),
+      xp_earned: xpEarned,
+    })
     .select()
     .single();
   if (wErr || !workout) throw wErr ?? new Error("Failed to create workout");
