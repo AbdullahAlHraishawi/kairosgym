@@ -38,19 +38,27 @@ function RanksPage() {
           return (
             <div
               key={r.name}
-              className={`bg-card flex items-center gap-3 rounded-2xl border p-4 ${
-                reached ? "border-primary/40 shadow-glow" : "border-border opacity-70"
+              className={`card-premium relative flex items-center gap-3 overflow-hidden rounded-2xl p-4 ${
+                reached ? "edge-red" : "opacity-70"
               }`}
             >
+              <span
+                className="absolute left-0 top-0 h-full w-1"
+                style={{ background: r.color }}
+                aria-hidden="true"
+              />
               <div
                 className="flex h-12 w-12 items-center justify-center rounded-xl text-foreground"
-                style={{ background: `color-mix(in oklab, ${r.color} 25%, transparent)` }}
+                style={{
+                  background: `color-mix(in oklab, ${r.color} 25%, transparent)`,
+                  boxShadow: "inset 0 2px 4px oklch(0 0 0 / 0.5)",
+                }}
               >
                 <Trophy className="h-5 w-5" style={{ color: r.color }} />
               </div>
               <div className="flex-1">
                 <div className="text-sm font-bold">{r.name}</div>
-                <div className="text-[11px] text-muted-foreground">
+                <div className="text-[11px] text-muted-foreground text-display">
                   Level {r.level}+ · {xpForLevel(r.level).toLocaleString()} XP
                 </div>
               </div>
