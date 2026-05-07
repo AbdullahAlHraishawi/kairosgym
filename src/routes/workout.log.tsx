@@ -111,18 +111,21 @@ function LogPage() {
   const liveTotalXp = (baseXp ?? profile?.total_xp ?? 0) + sessionXp;
   const lp = levelProgress(liveTotalXp);
 
-  // Detect level-up
-  const prevLevelRef = useRef<number>(lp.level);
+  // Detect level-up (only after baseline XP is known, so initial profile load doesn't trigger it)
+  const prevLevelRef = useRef<number | null>(null);
   useEffect(() => {
+    if (baseXp === null) return;
+    if (prevLevelRef.current === null) {
+      prevLevelRef.current = lp.level;
+      return;
+    }
     if (lp.level > prevLevelRef.current) {
       const newLevel = lp.level;
-      // Bar: fill to 100% briefly, snap to 0, then settle to real progress
       setBarPhase("fill");
       const t1 = setTimeout(() => setBarPhase("snap"), 500);
       const t2 = setTimeout(() => setBarPhase("settle"), 560);
       const t3 = setTimeout(() => setBarPhase("normal"), 620);
 
-      // Overlay
       setLevelUpValue(newLevel);
       setLevelUpPhase("in");
       const t4 = setTimeout(() => setLevelUpPhase("out"), 2900);
@@ -138,7 +141,7 @@ function LogPage() {
       };
     }
     prevLevelRef.current = lp.level;
-  }, [lp.level]);
+  }, [lp.level, baseXp]);
 
   const displayProgress =
     barPhase === "fill" ? 1 : barPhase === "snap" ? 0 : lp.progress;
