@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Plus, Flame } from "lucide-react";
+import { ArrowLeft, Plus, Flame, Loader2 } from "lucide-react";
 import { MobileShell } from "@/components/mobile-shell";
 import { SessionIntro } from "@/components/session-intro";
 import { SessionTimer } from "@/components/session-timer";

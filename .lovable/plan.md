@@ -1,19 +1,33 @@
-## Problem
+## Three issues in `src/routes/workout.log.tsx`
 
-When "Complete Session" is tapped, the inner session content (header, timer, exercises) fades to black via `transition-opacity duration-300` on the wrapper at line 210, but the fixed CTA container at line 371 sits outside that wrapper and stays at full opacity. Result: content fades → black screen with the button still hovering → ~350ms later the route navigates and the button finally disappears, then the summary appears.
+### 1. Session starts behind the intro animation
 
-## Fix
+`SessionIntro` covers the screen for ~2850ms, but `startedAtRef` is initialized to `Date.now()` at mount and exercises are fetched immediately, so the timer is already counting and work happens behind the splash.
 
-In `src/routes/workout.log.tsx`, tie the fixed CTA's opacity and interactivity to the same `exiting` state so it fades in lockstep with the rest of the screen.
+**Fix:**
+- Add `intro` state (`true` initially). `SessionIntro` calls `onDone` → `setIntro(false)`.
+- Don't set `startedAtRef.current` at mount. Set it inside the `onDone` handler so the clock starts when the intro finishes.
+- Gate the exercise-fetch `useEffect` on `!intro` (or kick it off inside `onDone`) so loading happens during/after the splash without affecting the visible timer.
+- Render the session content (header/timer/exercises/CTA) only once `intro` is false to avoid the timer flashing 00:00 behind the overlay.
 
-Update the sticky CTA wrapper (around line 371):
+### 2. Level-up animation fires on session start
 
-- Add `transition-opacity duration-300` to the wrapper.
-- When `exiting` is true: apply `opacity-0` and keep `pointer-events-none` (already there); when false: `opacity-100`.
-- Also disable the button itself while exiting (`disabled={exiting}`) so a second tap during the fade can't re-trigger `completeSession`.
+`prevLevelRef` is seeded with `lp.level` computed from `liveTotalXp = (baseXp ?? profile?.total_xp ?? 0) + sessionXp`. On first render `baseXp` is null and `profile` is undefined, so `prevLevelRef` starts at 0. When `profile` then loads with the user's real XP, `lp.level` jumps from 0 → real level and the level-up effect triggers (bar fill + LEVEL UP overlay) even though no XP was earned.
 
-No changes to navigation timing, the fade wrapper at line 210, or the completion logic — just making the CTA participate in the existing 300ms fade.
+**Fix:**
+- Initialize `prevLevelRef` lazily: leave it `null` until `baseXp` is set, then seed it to the level computed from `baseXp`.
+- In the level-up `useEffect`, bail out if `prevLevelRef.current === null` (just record the current level and return).
+- This guarantees the overlay only fires for level transitions caused by completed sets in this session.
+
+### 3. Black screen between Complete Session tap and summary
+
+`completeSession` sets `exiting=true` (fades content + CTA to `opacity-0` over 300ms), then awaits `finishWorkout`, then waits 350ms before navigating. If `finishWorkout` takes a noticeable amount of time, the user stares at a black `MobileShell` because everything inside is faded out and nothing else is rendered.
+
+**Fix:**
+- While `exiting` is true, render a centered loading overlay inside `MobileShell` (above the faded content): a pulsing/spinning Flame or ring with "Saving session…" caption, using existing primary color and glow tokens.
+- Remove the artificial `setTimeout(..., 350)` delays — navigate as soon as `finishWorkout` resolves (the destination route mounts immediately; the fade is no longer load-bearing). Keep the short delay only on the empty-session early return so the fade still feels intentional there.
+- Net effect: if save is fast, user sees a brief fade → summary. If save is slow, user sees the loading indicator instead of a blank screen.
 
 ### Out of scope
 
-- Summary screen, navigation logic, XP/streak persistence, or any other route.
+Summary route, XP math, set/rep logic, navigation targets, intro animation visuals.
