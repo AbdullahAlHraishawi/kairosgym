@@ -8,7 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress } from "@/lib/xp";
-import { estimateCalories, CAL_DISCLAIMER } from "@/lib/calories";
+import {
+  estimateCaloriesFromSession,
+  intensityLabel,
+  CAL_DISCLAIMER,
+} from "@/lib/calories";
 
 export const Route = createFileRoute("/workout/complete")({
   validateSearch: z.object({ id: z.string().optional() }),
