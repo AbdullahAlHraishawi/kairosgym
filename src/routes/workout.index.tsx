@@ -143,14 +143,31 @@ function WorkoutPage() {
         />
       </div>
 
-      {/* Filters */}
+      {/* Filters — muscle */}
       <div className="no-scrollbar -mx-5 mt-3 flex gap-2 overflow-x-auto px-5">
-        {FILTERS.map((f) => (
+        {MUSCLE_FILTERS.map((f) => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            onClick={() => setMuscleFilter(f)}
             className={`press shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider transition ${
-              filter === f
+              muscleFilter === f
+                ? "bg-primary text-primary-foreground border-primary shadow-glow"
+                : "bg-card border-border text-muted-foreground"
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
+      {/* Filters — equipment */}
+      <div className="no-scrollbar -mx-5 mt-2 flex gap-2 overflow-x-auto px-5">
+        {EQUIPMENT_FILTERS.map((f) => (
+          <button
+            key={f}
+            onClick={() => setEquipmentFilter(f)}
+            className={`press shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider transition ${
+              equipmentFilter === f
                 ? "bg-primary text-primary-foreground border-primary shadow-glow"
                 : "bg-card border-border text-muted-foreground"
             }`}
