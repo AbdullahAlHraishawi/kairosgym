@@ -276,18 +276,26 @@ function ProfilePage() {
         </div>
       </section>
 
-      <Drawer open={weightOpen} onOpenChange={setWeightOpen}>
-        <DrawerContent className="card-premium">
-          <DrawerHeader>
-            <DrawerTitle className="text-display uppercase tracking-widest text-center">
+      <Dialog open={weightOpen} onOpenChange={setWeightOpen}>
+        <DialogContent
+          className="card-premium w-[calc(100vw-2rem)] max-w-sm rounded-2xl p-5"
+          style={
+            vvHeight
+              ? { top: vvHeight / 2, transform: "translate(-50%, -50%)" }
+              : undefined
+          }
+        >
+          <DialogHeader>
+            <DialogTitle className="text-display uppercase tracking-widest text-center">
               Body weight
-            </DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-2">
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-1">
             <label className="text-[11px] uppercase tracking-widest text-muted-foreground">
               Weight (kg)
             </label>
             <Input
+              ref={inputRef}
               type="number"
               inputMode="decimal"
               min={30}
@@ -295,24 +303,30 @@ function ProfilePage() {
               step="0.1"
               value={weightInput}
               onChange={(e) => setWeightInput(e.target.value)}
+              onFocus={() =>
+                setTimeout(
+                  () => inputRef.current?.scrollIntoView({ block: "center" }),
+                  300,
+                )
+              }
               placeholder="e.g. 78"
               className="mt-1 text-display text-lg"
               autoFocus
             />
             <p className="mt-2 text-[10px] italic text-muted-foreground">
-              Used only to estimate calories burned during your sessions.
+              Estimate only. Used to calculate calories burned.
             </p>
           </div>
-          <DrawerFooter className="flex-row gap-2">
-            <Button variant="ghost" className="flex-1" onClick={() => setWeightOpen(false)}>
+          <DialogFooter className="mt-2 flex-row gap-2 sm:justify-end">
+            <Button variant="ghost" className="flex-1 sm:flex-none" onClick={() => setWeightOpen(false)}>
               Cancel
             </Button>
-            <Button className="flex-1" onClick={saveWeight} disabled={savingWeight}>
+            <Button className="flex-1 sm:flex-none" onClick={saveWeight} disabled={savingWeight}>
               {savingWeight ? "Saving…" : "Save"}
             </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MobileShell>
   );
 }
