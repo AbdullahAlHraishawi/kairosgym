@@ -135,3 +135,45 @@ export async function finishWorkout(exercises: LoggedExercise[]): Promise<Finish
     unlockedAchievements: unlocked,
   };
 }
+
+export async function persistSessionXp(xpEarned: number): Promise<{
+  newTotalXp: number;
+  newLevel: number;
+  leveledUp: boolean;
+  newStreak: number;
+}> {
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData.user;
+  if (!user) throw new Error("Not signed in");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("total_xp, level, streak, last_workout_date")
+    .eq("id", user.id)
+    .single();
+
+  const prevLevel = profile?.level ?? 0;
+  const newTotalXp = (profile?.total_xp ?? 0) + Math.max(0, xpEarned);
+  const newLevel = levelFromXp(newTotalXp);
+
+  const today = new Date();
+  let newStreak = 1;
+  if (profile?.last_workout_date) {
+    const last = new Date(profile.last_workout_date);
+    if (isSameDay(last, today)) newStreak = profile.streak ?? 1;
+    else if (isYesterday(last, today)) newStreak = (profile.streak ?? 0) + 1;
+    else newStreak = 1;
+  }
+
+  await supabase
+    .from("profiles")
+    .update({
+      total_xp: newTotalXp,
+      level: newLevel,
+      streak: newStreak,
+      last_workout_date: today.toISOString().slice(0, 10),
+    })
+    .eq("id", user.id);
+
+  return { newTotalXp, newLevel, leveledUp: newLevel > prevLevel, newStreak };
+}
