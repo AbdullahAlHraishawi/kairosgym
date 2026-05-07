@@ -7,6 +7,7 @@ export interface LoggedExercise {
 }
 
 export interface FinishResult {
+  workoutId: string;
   xpEarned: number;
   newTotalXp: number;
   newLevel: number;
@@ -127,6 +128,7 @@ export async function finishWorkout(exercises: LoggedExercise[]): Promise<Finish
   }
 
   return {
+    workoutId: workout.id,
     xpEarned,
     newTotalXp,
     newLevel,
