@@ -66,28 +66,43 @@ function ProgressPage() {
       setWeekData(buckets.slice(7).map((xp, i) => ({ day: DAYS[i], xp })));
       setDelta(lastWeek === 0 ? (thisWeek > 0 ? 100 : 0) : Math.round(((thisWeek - lastWeek) / lastWeek) * 100));
 
-      const { count: wCount } = await supabase
+      // Lifetime workouts with their completed sets (for calories + totals)
+      const { data: lifeWorkouts } = await supabase
         .from("workouts")
-        .select("*", { count: "exact", head: true })
+        .select(
+          "started_at, finished_at, workout_exercises(workout_sets(weight, reps, completed))",
+        )
         .eq("user_id", user.id);
 
-      // Lifetime sets/reps/volume from completed sets
-      const { data: lifeSets } = await supabase
-        .from("workout_sets")
-        .select("weight, reps, completed, workout_exercises!inner(workouts!inner(user_id))")
-        .eq("completed", true)
-        .eq("workout_exercises.workouts.user_id", user.id);
+      const rows: WorkoutForCalories[] = [];
       let lSets = 0, lReps = 0, lVol = 0;
-      (lifeSets ?? []).forEach((s: { weight: number | string; reps: number }) => {
-        lSets += 1;
-        lReps += s.reps ?? 0;
-        lVol += Number(s.weight ?? 0) * (s.reps ?? 0);
+      (lifeWorkouts ?? []).forEach((w) => {
+        let totalReps = 0;
+        let setsCount = 0;
+        const wex = (w as { workout_exercises?: Array<{ workout_sets?: Array<{ weight: number | string; reps: number; completed: boolean }> }> }).workout_exercises ?? [];
+        wex.forEach((e) => {
+          (e.workout_sets ?? []).forEach((s) => {
+            if (s.completed) {
+              setsCount += 1;
+              totalReps += s.reps ?? 0;
+              lSets += 1;
+              lReps += s.reps ?? 0;
+              lVol += Number(s.weight ?? 0) * (s.reps ?? 0);
+            }
+          });
+        });
+        rows.push({
+          started_at: w.started_at,
+          finished_at: w.finished_at,
+          totalReps,
+          setsCount,
+        });
       });
+      setWorkoutRows(rows);
 
       setStats({
-        workouts: wCount ?? 0,
+        workouts: rows.length,
         hours: Math.round(totalSecs / 360) / 10,
-        totalSecs,
         sets: lSets,
         reps: lReps,
         volume: lVol,
