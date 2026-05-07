@@ -9,12 +9,22 @@ import {
   History,
   Users,
   Lock,
+  Scale,
 } from "lucide-react";
 import { MobileShell } from "@/components/mobile-shell";
 import { Avatar } from "@/components/avatar";
 import { XpBar } from "@/components/xp-bar";
 import { AtmoCard } from "@/components/atmo-card";
 import { BadgeEmblem } from "@/components/badge-emblem";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress, titleForLevel } from "@/lib/xp";
@@ -36,7 +46,10 @@ export const Route = createFileRoute("/profile")({
 function ProfilePage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const { profile } = useProfile(user?.id);
+  const { profile, refresh } = useProfile(user?.id);
+  const [weightOpen, setWeightOpen] = useState(false);
+  const [weightInput, setWeightInput] = useState("");
+  const [savingWeight, setSavingWeight] = useState(false);
   const [badges, setBadges] = useState<
     { code: string; name: string; description: string; icon: string; unlocked: boolean }[]
   >([]);
