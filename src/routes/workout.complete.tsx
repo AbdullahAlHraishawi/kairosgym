@@ -8,7 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress } from "@/lib/xp";
-import { estimateCalories, CAL_DISCLAIMER } from "@/lib/calories";
+import {
+  estimateCaloriesFromSession,
+  intensityLabel,
+  CAL_DISCLAIMER,
+} from "@/lib/calories";
 
 export const Route = createFileRoute("/workout/complete")({
   validateSearch: z.object({ id: z.string().optional() }),
@@ -223,10 +227,29 @@ function CompletePage() {
               value={`${summary.volume.toLocaleString()} kg`}
             />
             {profile?.weight_kg ? (
-              <SummaryRow
-                label="Calories"
-                value={`≈ ${estimateCalories(profile.weight_kg, summary.durationSecs).toLocaleString()} kcal`}
-              />
+              (() => {
+                const avgReps = summary.sets > 0 ? summary.reps / summary.sets : null;
+                const { kcal, met } = estimateCaloriesFromSession(
+                  profile.weight_kg,
+                  summary.durationSecs,
+                  avgReps,
+                );
+                return (
+                  <div className="flex items-center justify-between py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                      Calories
+                    </div>
+                    <div className="text-right">
+                      <div className="text-display text-lg font-black tabular-nums text-foreground">
+                        ≈ {kcal.toLocaleString()} kcal
+                      </div>
+                      <div className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
+                        {intensityLabel(met)} · MET {met.toFixed(1)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
             ) : (
               <Link to="/profile" className="press flex items-center justify-between py-3">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
