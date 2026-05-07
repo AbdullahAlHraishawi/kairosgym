@@ -45,7 +45,9 @@ function LogPage() {
   );
   const [exiting, setExiting] = useState(false);
   const [floaters, setFloaters] = useState<Record<string, number | null>>({});
-  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [levelUpValue, setLevelUpValue] = useState<number | null>(null);
+  const [levelUpPhase, setLevelUpPhase] = useState<"idle" | "in" | "out">("idle");
+  const [barPhase, setBarPhase] = useState<"normal" | "fill" | "snap" | "settle">("normal");
 
   // Snapshot baseline XP once when profile first arrives
   const [baseXp, setBaseXp] = useState<number | null>(null);
@@ -104,13 +106,34 @@ function LogPage() {
   const prevLevelRef = useRef<number>(lp.level);
   useEffect(() => {
     if (lp.level > prevLevelRef.current) {
-      setShowLevelUp(true);
-      const t = setTimeout(() => setShowLevelUp(false), 1800);
+      const newLevel = lp.level;
+      // Bar: fill to 100% briefly, snap to 0, then settle to real progress
+      setBarPhase("fill");
+      const t1 = setTimeout(() => setBarPhase("snap"), 500);
+      const t2 = setTimeout(() => setBarPhase("settle"), 560);
+      const t3 = setTimeout(() => setBarPhase("normal"), 620);
+
+      // Overlay
+      setLevelUpValue(newLevel);
+      setLevelUpPhase("in");
+      const t4 = setTimeout(() => setLevelUpPhase("out"), 1900);
+      const t5 = setTimeout(() => {
+        setLevelUpPhase("idle");
+        setLevelUpValue(null);
+      }, 2400);
+
       prevLevelRef.current = lp.level;
-      return () => clearTimeout(t);
+      return () => {
+        clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+        clearTimeout(t4); clearTimeout(t5);
+      };
     }
     prevLevelRef.current = lp.level;
   }, [lp.level]);
+
+  const displayProgress =
+    barPhase === "fill" ? 1 : barPhase === "snap" ? 0 : lp.progress;
+  const disableBarTransition = barPhase === "snap";
 
   const updateSet = (ei: number, si: number, patch: Partial<SetRowState>) => {
     setEntries((prev) => {
@@ -168,7 +191,7 @@ function LogPage() {
       >
         {/* Sticky session header */}
         <div
-          className="sticky top-0 z-20 -mx-5 px-5 pt-3 pb-4 backdrop-blur-md"
+          className="sticky top-0 z-20 -mx-5 px-5 pt-3 pb-4 backdrop-blur-md relative"
           style={{
             background:
               "linear-gradient(180deg, color-mix(in oklab, var(--background) 92%, transparent) 0%, color-mix(in oklab, var(--background) 80%, transparent) 100%)",
@@ -209,20 +232,54 @@ function LogPage() {
                 {lp.xpInLevel} / {lp.span} XP
               </div>
             </div>
-            <div className={showLevelUp ? "animate-glow rounded-full" : ""}>
-              <XpBar progress={lp.progress} animateKey={liveTotalXp} />
+            <div className={barPhase === "fill" ? "animate-glow rounded-full" : ""}>
+              <XpBar progress={displayProgress} disableTransition={disableBarTransition} />
             </div>
-            {showLevelUp && (
-              <div className="mt-2 flex justify-center">
+          </div>
+
+          {/* Cinematic LEVEL UP overlay */}
+          {levelUpValue !== null && (
+            <div className="pointer-events-none absolute inset-x-0 top-14 z-30 flex justify-center">
+              <div
+                className={`relative ${levelUpPhase === "out" ? "animate-level-up-out" : "animate-level-up-in"}`}
+              >
                 <div
-                  className="animate-fade-up shadow-glow rounded-full border border-primary/50 bg-primary/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-primary"
-                  style={{ textShadow: "0 0 10px var(--primary-glow)" }}
-                >
-                  ⚔ Level Up
+                  aria-hidden="true"
+                  className="animate-level-flare absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    width: 260,
+                    height: 260,
+                    background:
+                      "radial-gradient(circle, color-mix(in oklab, var(--primary-glow) 65%, transparent) 0%, transparent 70%)",
+                    filter: "blur(8px)",
+                  }}
+                />
+                <div className="relative text-center">
+                  <div className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">
+                    Level
+                  </div>
+                  <div
+                    className="text-7xl font-black tabular-nums leading-none text-foreground"
+                    style={{
+                      textShadow:
+                        "0 0 12px var(--primary-glow), 0 0 28px var(--primary-glow), 0 0 56px var(--primary)",
+                    }}
+                  >
+                    {levelUpValue}
+                  </div>
+                  <div
+                    className="mt-2 text-xl font-black uppercase tracking-[0.4em] text-primary"
+                    style={{
+                      textShadow:
+                        "0 0 8px var(--primary-glow), 0 0 18px var(--primary-glow), 0 0 36px var(--primary)",
+                    }}
+                  >
+                    Level Up
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {loadingExercises ? (

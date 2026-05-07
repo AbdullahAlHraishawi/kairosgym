@@ -123,7 +123,7 @@ function ProfilePage() {
           </div>
         </div>
         <div className="mt-3">
-          <XpBar progress={lp.progress} animateKey={profile.total_xp} />
+          <XpBar progress={lp.progress} />
           <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
             <span className="text-display">{lp.xpInLevel} / {lp.span}</span>
             <span className="text-display">Streak · {profile.streak} 🔥</span>

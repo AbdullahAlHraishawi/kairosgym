@@ -170,7 +170,7 @@ function HomePage() {
             </div>
           </div>
           <div className="mt-5">
-            <XpBar progress={lp.progress} animateKey={profile.total_xp} />
+            <XpBar progress={lp.progress} />
             <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
               <span className="text-display">{lp.xpInLevel} / {lp.span} XP</span>
               <span className="text-display">Next: {lp.xpForNext} XP</span>
@@ -198,7 +198,7 @@ function HomePage() {
             {todayCount}/{dailyTarget} workout
           </span>
         </div>
-        <XpBar progress={todayProgress} animateKey={todayCount} />
+        <XpBar progress={todayProgress} />
       </section>
 
       {/* Stats */}

@@ -1,65 +1,55 @@
-## Live XP feedback in active session
+# Polish: XP bar continuity + cinematic LEVEL UP
 
-Keep all current KAIROS visuals. No redesign. Add live XP progress to the active workout session, with real persistence so the home/profile level reflects gains.
+Scope: visual/animation polish only. No layout, color, or business-logic changes. Files touched: `src/components/xp-bar.tsx`, `src/styles.css`, `src/routes/workout.log.tsx`.
 
-### 1. Real level math (100 XP / level)
+## 1. XP bar — animate from current, not 0
 
-Update `src/lib/xp.ts`:
-- `levelFromXp(xp)` → `Math.floor(xp / 100)` (linear, matches "100 XP = next level").
-- `xpForLevel(level)` → `level * 100`.
-- `levelProgress` math stays the same shape (level, xpInLevel, span=100, progress).
-- Keep `XP_PER_WORKOUT` / `XP_PER_SET` exports (still used by `finishWorkout` legacy path) but they will become unused after step 3 — leave for back-compat unless removal is trivial.
+**Problem:** `XpBar` uses `key={animateKey}` + `animate-xp-fill` keyframe, which remounts the fill on every XP change and replays a 0→target fill.
 
-### 2. Per-set XP rule (single source of truth)
+**Fix in `src/components/xp-bar.tsx`:**
+- Remove `key` remount and `animate-xp-fill` class.
+- Drive width purely from `progress` prop with a CSS `transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1)` so React state updates animate the bar smoothly from its current width to the new one.
+- Keep existing premium gradient, inner glow, and shimmer sweep.
 
-Add `xpForSet(reps)` in `src/lib/xp.ts`:
-- `reps > 0` → `reps + 5`
-- `reps <= 0 || empty` → `5`
+**Level-up handling (workout.log.tsx):**
+- Track `prevLevel` via ref. When a level-up is detected:
+  1. First, briefly force progress to `1` (full bar) for ~450ms with a glow pulse — so the eye sees it complete.
+  2. Then disable transition for one frame and snap to `0`.
+  3. Re-enable transition and set the real new `lp.progress` so it animates smoothly from 0 to remainder.
+- Implementation: a small `useEffect` on `lp.level` that toggles a `levelTransition` state with three phases (`fill` → `reset` → `settle`), and a `displayProgress` value passed to `XpBar` based on phase. `XpBar` accepts an optional `disableTransition` prop to allow the snap-to-0 step.
 
-### 3. Sticky session header in `src/routes/workout.log.tsx`
+This guarantees: normal gains animate 35→52 smoothly; on level-up the bar visibly fills, flashes, resets, and continues filling to the remainder.
 
-Wrap the top bar + hero (timer, subtitle) and a new XP block in a `sticky top-0 z-20` container with `bg-background/85 backdrop-blur` and a soft bottom border, so it stays pinned while exercises scroll.
+## 2. LEVEL UP overlay — large, cinematic, ~2.4s
 
-New XP block under the timer:
-- Line 1: `LEVEL {n}` (small uppercase tracked label, primary tint).
-- `<XpBar progress={...} animateKey={liveXp} />` reused from existing component (already has red glow / animate-xp-fill).
-- Line 2: `{xpInLevel} / 100 XP` tabular-nums, muted.
-- On level-up: brief "LEVEL UP" pill (uses existing `animate-fade-up` + `shadow-glow` + `animate-glow` for red pulse) shown for ~1.6s inside the sticky header. No navigation.
+Replace the small pill currently inside the sticky header.
 
-### 4. Live XP state + animation
+**New overlay (rendered inside `LogPage`, absolutely positioned over the sticky session area, non-blocking):**
+- Position: `absolute inset-x-0 top-16` within the sticky header container, `pointer-events-none`, `z-30`.
+- Content: stacked
+  - tiny eyebrow: `LEVEL` in muted tracking
+  - giant number: the new level, font-black, `text-7xl`, tabular-nums
+  - subline: `LEVEL UP` in primary, `text-xl font-black tracking-[0.4em]`
+- Effects:
+  - Red radial energy flare behind text (`radial-gradient(circle, primary-glow 0%, transparent 70%)`) at ~220px, blurred, animated scale-pulse.
+  - Layered text-shadow glow on the number and label using `--primary-glow` / `--primary` (3-stop blur).
+  - Entry: fade + scale from 0.85 → 1.05 → 1.0 with cubic-bezier easing over 600ms.
+  - Hold ~1.4s.
+  - Exit: fade + slight scale down + slight upward drift over 500ms.
+  - Total visible duration ≈ 2.4–2.5s.
 
-In `LogPage`:
-- Track `sessionXp` (sum of XP from currently-completed sets) derived from `entries` via `useMemo` — guarantees toggling a set off subtracts XP automatically (idempotent, no double-award on re-tap).
-- Track `baseXp` = the user's `profile.total_xp` snapshot taken once on mount (via `useProfile`).
-- `liveTotalXp = baseXp + sessionXp` → feed into `levelProgress` for the sticky bar.
-- Detect level-up by comparing previous vs current `levelFromXp(liveTotalXp)` in a `useEffect` → trigger the LEVEL UP pulse + a one-shot red glow class on the XP bar wrapper.
+**New keyframes in `src/styles.css`:**
+- `@keyframes level-up-in` (0% opacity 0, scale 0.85; 60% opacity 1, scale 1.06; 100% scale 1)
+- `@keyframes level-up-out` (0% opacity 1; 100% opacity 0, translateY(-12px), scale 0.98)
+- `@keyframes level-flare` (scale + opacity pulse on the radial backdrop)
+- Utility classes: `.animate-level-up-in`, `.animate-level-up-out`, `.animate-level-flare`.
 
-Floating "+XP" near the set:
-- New tiny component `XpFloater` (or inline) rendered absolutely inside `SetRow`'s wrapper when a set transitions `done: false → true`. Uses existing tokens: `text-primary`, `font-black`, `drop-shadow-[0_0_12px_var(--primary-glow)]`, `animate-fade-up` rising ~28px and fading out over 900ms, then unmounts.
-- Implementation: `SetRow` receives optional `floatXp?: number | null` prop and an `onFloatDone` callback; parent sets it when toggling done=true with the computed XP for that set, clears after animation.
+**workout.log.tsx changes:**
+- Replace existing `showLevelUp` pill with the new overlay component (kept inline for simplicity).
+- Bump timeout from 1800ms → 2400ms.
+- Track `levelUpValue` (the new level number to display) so it stays correct during exit animation.
+- Drive `levelTransition` phases (see XP bar section) from the same level-up detection.
 
-### 5. Persist XP on session complete
-
-`completeSession` currently just navigates home. Update it to:
-- Call a new lightweight `persistSessionXp(sessionXp)` in `src/lib/workout.ts` (or inline in route) that:
-  - Reads current profile `total_xp`, writes `total_xp = total_xp + sessionXp`, `level = levelFromXp(newTotal)`.
-  - Updates `last_workout_date` + streak (reuse existing logic from `finishWorkout`).
-  - Does NOT yet write `workouts` / `workout_exercises` / `workout_sets` rows or unlock achievements (out of scope per user — "no post-workout summary / achievements yet"). Existing `finishWorkout` stays available but we won't call it from this screen yet.
-- Then navigate home so the home screen's level/XP bar reflects the new value.
-
-This makes the live XP "real": what the user sees during the session is exactly what gets saved.
-
-### 6. Out of scope (explicit)
-
-- No post-workout summary screen.
-- No achievements logic.
-- No rest timer.
-- No layout/color/typography changes anywhere else.
-- No changes to `SessionIntro`, `XpBar`, or global styles beyond what's above.
-
-### Files touched
-
-- `src/lib/xp.ts` — linear level math + `xpForSet`.
-- `src/lib/workout.ts` — add `persistSessionXp`.
-- `src/routes/workout.log.tsx` — sticky header, XP state, level-up pulse, persist on complete.
-- `src/components/set-row.tsx` — optional `+XP` floater overlay.
+## Out of scope
+- No changes to set rows, floaters, persistence, navigation, colors, or typography beyond the new overlay sizing/glow.
+- No new dependencies.
