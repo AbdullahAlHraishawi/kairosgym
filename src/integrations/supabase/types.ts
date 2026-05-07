@@ -71,6 +71,7 @@ export type Database = {
           total_xp: number
           updated_at: string
           username: string
+          weight_kg: number | null
         }
         Insert: {
           avatar_seed?: string
@@ -83,6 +84,7 @@ export type Database = {
           total_xp?: number
           updated_at?: string
           username: string
+          weight_kg?: number | null
         }
         Update: {
           avatar_seed?: string
@@ -95,6 +97,7 @@ export type Database = {
           total_xp?: number
           updated_at?: string
           username?: string
+          weight_kg?: number | null
         }
         Relationships: []
       }
