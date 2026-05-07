@@ -214,8 +214,29 @@ function HomePage() {
       <section className="mt-5 grid grid-cols-3 gap-3">
         <StatCard label="Workouts" value={totalWorkouts} />
         <StatCard label="Weekly XP" value={weeklyXp} accent />
-        <StatCard label="Calories" value={Math.round(totalWorkouts * 285)} suffix="kcal" />
+        {profile.weight_kg ? (
+          <StatCard
+            label="Calories"
+            value={estimateCalories(profile.weight_kg, totalSecs)}
+            suffix="kcal"
+          />
+        ) : (
+          <Link
+            to="/profile"
+            className="press card-premium flex flex-col justify-center rounded-xl p-3"
+          >
+            <div className="text-[11px] font-bold leading-tight text-primary">
+              Set weight
+            </div>
+            <div className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+              in profile →
+            </div>
+          </Link>
+        )}
       </section>
+      {profile.weight_kg && (
+        <p className="mt-2 text-[10px] italic text-muted-foreground">{CAL_DISCLAIMER}</p>
+      )}
 
       {/* Achievements */}
       <section className="mt-7">
