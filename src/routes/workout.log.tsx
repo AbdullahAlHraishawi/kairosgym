@@ -45,7 +45,9 @@ function LogPage() {
   );
   const [exiting, setExiting] = useState(false);
   const [floaters, setFloaters] = useState<Record<string, number | null>>({});
-  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [levelUpValue, setLevelUpValue] = useState<number | null>(null);
+  const [levelUpPhase, setLevelUpPhase] = useState<"idle" | "in" | "out">("idle");
+  const [barPhase, setBarPhase] = useState<"normal" | "fill" | "snap" | "settle">("normal");
 
   // Snapshot baseline XP once when profile first arrives
   const [baseXp, setBaseXp] = useState<number | null>(null);
@@ -104,13 +106,34 @@ function LogPage() {
   const prevLevelRef = useRef<number>(lp.level);
   useEffect(() => {
     if (lp.level > prevLevelRef.current) {
-      setShowLevelUp(true);
-      const t = setTimeout(() => setShowLevelUp(false), 1800);
+      const newLevel = lp.level;
+      // Bar: fill to 100% briefly, snap to 0, then settle to real progress
+      setBarPhase("fill");
+      const t1 = setTimeout(() => setBarPhase("snap"), 500);
+      const t2 = setTimeout(() => setBarPhase("settle"), 560);
+      const t3 = setTimeout(() => setBarPhase("normal"), 620);
+
+      // Overlay
+      setLevelUpValue(newLevel);
+      setLevelUpPhase("in");
+      const t4 = setTimeout(() => setLevelUpPhase("out"), 1900);
+      const t5 = setTimeout(() => {
+        setLevelUpPhase("idle");
+        setLevelUpValue(null);
+      }, 2400);
+
       prevLevelRef.current = lp.level;
-      return () => clearTimeout(t);
+      return () => {
+        clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+        clearTimeout(t4); clearTimeout(t5);
+      };
     }
     prevLevelRef.current = lp.level;
   }, [lp.level]);
+
+  const displayProgress =
+    barPhase === "fill" ? 1 : barPhase === "snap" ? 0 : lp.progress;
+  const disableBarTransition = barPhase === "snap";
 
   const updateSet = (ei: number, si: number, patch: Partial<SetRowState>) => {
     setEntries((prev) => {
