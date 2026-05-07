@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   Settings,
   ChevronRight,

@@ -1,34 +1,30 @@
-# Center the body-weight prompt + keep it above the keyboard
+## Problem
 
-Revert to a centered modal (not a bottom drawer) and fix the original problem — the on-screen keyboard covering the input — by anchoring the modal to the visible viewport instead of the full screen.
+The body-weight dialog renders partially off-screen (corner visible without keyboard, shifted left when keyboard opens). Root cause: the current fix mixes Radix's absolute centering (`left-[50%] top-[50%] translate(-50%,-50%)` from `DialogContent`) with our inline `top: vvHeight/2` + `transform`. On Android, the layout viewport already resizes when the keyboard opens, so the inline `top` double-shifts. The animation classes (`slide-in-from-left-1/2`) also fight with our overridden transform, leaving the dialog off-center.
 
-## Approach
+## Fix
 
-Keep using shadcn `Dialog` (centered), but add two small behaviors:
+Stop trying to override Radix's positioning. Instead, render the body-weight modal as a custom centered overlay (Radix `Dialog.Root` + `Dialog.Portal` + `Dialog.Overlay` + a flex-centered `Dialog.Content`) so the browser keeps it centered inside whatever the visible viewport currently is — no `visualViewport` math, no inline `top`/`transform`.
 
-1. **Track the visible viewport.** Use `window.visualViewport` to detect when the keyboard opens. When it does, the visual viewport height shrinks. Apply that height as a CSS variable and translate the dialog so its center sits in the middle of the *visible* area, not the full screen.
+### Changes in `src/routes/profile.tsx`
 
-2. **Compact dialog.** Keep the dialog content short (title + single input + 2 buttons, no extra padding) so it always fits inside the reduced viewport above the keyboard.
+1. Remove `vvHeight` state, the `useEffect` that subscribes to `visualViewport`, and the `inputRef.scrollIntoView` focus handler (no longer needed).
+2. Replace the `<Dialog>...<DialogContent>...` block with a direct Radix usage:
+   - `Dialog.Root` (open/onOpenChange)
+   - `Dialog.Portal`
+   - `Dialog.Overlay` — `fixed inset-0 z-50 bg-black/80`
+   - A `fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none` wrapper
+   - `Dialog.Content` inside the wrapper with `pointer-events-auto card-premium w-full max-w-sm rounded-2xl p-5 max-h-[calc(100dvh-2rem)] overflow-auto` and no absolute positioning classes
+3. Keep the existing inputs, label, helper text, Cancel/Save buttons; drop the `ref={inputRef}` and `onFocus` handler.
+4. Keep `autoFocus` on the `Input` so the keyboard opens immediately.
 
-3. **Scroll input into view on focus** as a fallback for browsers without `visualViewport` support.
+### Why this works
 
-## Changes
+- `100dvh` (dynamic viewport height) and the flex wrapper let the browser recompute centering as the keyboard pushes the layout viewport — no manual math.
+- `pointer-events-none` on the wrapper + `pointer-events-auto` on the content keeps the overlay click-to-close behavior intact.
+- Removing the inline `transform` lets Radix's open/close animations run cleanly without leaving the dialog stuck off-axis.
 
-**`src/routes/profile.tsx`**
-- Revert: switch back from `Drawer` to `Dialog` / `DialogContent` / `DialogHeader` / `DialogTitle` / `DialogFooter`.
-- Wrap the dialog content in a small inline component that:
-  - subscribes to `window.visualViewport` resize/scroll
-  - sets `style={{ maxHeight: visualViewport.height - 32 }}` on the content
-  - calls `inputRef.current?.scrollIntoView({ block: "center" })` on focus
-- Tighten padding so the whole modal is ~260px tall.
+### Out of scope
 
-**No changes** to the calorie logic, the body-weight save flow, or anything else.
-
-## Out of scope
-
-- Changing other dialogs in the app
-- Adding viewport handling globally (only this dialog needs it for now)
-
-## Files touched
-
-- edit `src/routes/profile.tsx` — switch back to Dialog, add visualViewport-aware sizing
+- The shared `DialogContent` in `src/components/ui/dialog.tsx` is unchanged (other dialogs work fine on desktop).
+- No changes to calorie logic, save flow, or any other component.
