@@ -236,7 +236,7 @@ function HomePage() {
         {profile.weight_kg ? (
           <StatCard
             label="Calories"
-            value={estimateCalories(profile.weight_kg, totalSecs)}
+            value={sumWorkoutCalories(workoutRows, profile.weight_kg)}
             suffix="kcal"
           />
         ) : (
