@@ -1,5 +1,13 @@
 import frontBodyDefault from "@/assets/body-front.png";
 import backBodyDefault from "@/assets/body-back.png";
+import maskFrontChest from "@/assets/mask-front-chest.png";
+import maskFrontShoulders from "@/assets/mask-front-shoulders.png";
+import maskFrontArms from "@/assets/mask-front-arms.png";
+import maskFrontLegs from "@/assets/mask-front-legs.png";
+import maskBackBack from "@/assets/mask-back-back.png";
+import maskBackShoulders from "@/assets/mask-back-shoulders.png";
+import maskBackArms from "@/assets/mask-back-arms.png";
+import maskBackLegs from "@/assets/mask-back-legs.png";
 
 type Props = {
   trainedMuscles: Set<string>;
@@ -8,67 +16,32 @@ type Props = {
   backBodyImage?: string;
 };
 
-type Region = {
-  muscle: string;
-  // ellipse in % of container (cx, cy, rx, ry)
-  cx: number;
-  cy: number;
-  rx: number;
-  ry: number;
-};
+type MaskLayer = { muscle: string; src: string };
 
-// Coordinates tuned against the generated anatomy assets (1024x1536, body centered).
-const FRONT_REGIONS: Region[] = [
-  // Shoulders (deltoids)
-  { muscle: "Shoulders", cx: 32, cy: 22, rx: 8, ry: 5 },
-  { muscle: "Shoulders", cx: 68, cy: 22, rx: 8, ry: 5 },
-  // Chest (pectorals)
-  { muscle: "Chest", cx: 41, cy: 26, rx: 8, ry: 6 },
-  { muscle: "Chest", cx: 59, cy: 26, rx: 8, ry: 6 },
-  // Arms (biceps + forearms)
-  { muscle: "Arms", cx: 24, cy: 33, rx: 5, ry: 7 },
-  { muscle: "Arms", cx: 76, cy: 33, rx: 5, ry: 7 },
-  { muscle: "Arms", cx: 20, cy: 44, rx: 4.5, ry: 6 },
-  { muscle: "Arms", cx: 80, cy: 44, rx: 4.5, ry: 6 },
-  // Legs (quads + calves)
-  { muscle: "Legs", cx: 41, cy: 60, rx: 7, ry: 9 },
-  { muscle: "Legs", cx: 59, cy: 60, rx: 7, ry: 9 },
-  { muscle: "Legs", cx: 41, cy: 80, rx: 5, ry: 7 },
-  { muscle: "Legs", cx: 59, cy: 80, rx: 5, ry: 7 },
+const FRONT_LAYERS: MaskLayer[] = [
+  { muscle: "Chest", src: maskFrontChest },
+  { muscle: "Shoulders", src: maskFrontShoulders },
+  { muscle: "Arms", src: maskFrontArms },
+  { muscle: "Legs", src: maskFrontLegs },
 ];
 
-const BACK_REGIONS: Region[] = [
-  // Shoulders (rear delts) + traps
-  { muscle: "Shoulders", cx: 32, cy: 22, rx: 7, ry: 5 },
-  { muscle: "Shoulders", cx: 68, cy: 22, rx: 7, ry: 5 },
-  // Back (traps + lats)
-  { muscle: "Back", cx: 50, cy: 24, rx: 9, ry: 4 },
-  { muscle: "Back", cx: 42, cy: 33, rx: 8, ry: 7 },
-  { muscle: "Back", cx: 58, cy: 33, rx: 8, ry: 7 },
-  // Arms (triceps + forearms)
-  { muscle: "Arms", cx: 24, cy: 33, rx: 5, ry: 7 },
-  { muscle: "Arms", cx: 76, cy: 33, rx: 5, ry: 7 },
-  { muscle: "Arms", cx: 20, cy: 44, rx: 4.5, ry: 6 },
-  { muscle: "Arms", cx: 80, cy: 44, rx: 4.5, ry: 6 },
-  // Legs (glutes + hamstrings + calves)
-  { muscle: "Legs", cx: 42, cy: 50, rx: 7, ry: 5 },
-  { muscle: "Legs", cx: 58, cy: 50, rx: 7, ry: 5 },
-  { muscle: "Legs", cx: 41, cy: 62, rx: 6, ry: 8 },
-  { muscle: "Legs", cx: 59, cy: 62, rx: 6, ry: 8 },
-  { muscle: "Legs", cx: 41, cy: 80, rx: 5, ry: 7 },
-  { muscle: "Legs", cx: 59, cy: 80, rx: 5, ry: 7 },
+const BACK_LAYERS: MaskLayer[] = [
+  { muscle: "Back", src: maskBackBack },
+  { muscle: "Shoulders", src: maskBackShoulders },
+  { muscle: "Arms", src: maskBackArms },
+  { muscle: "Legs", src: maskBackLegs },
 ];
 
 function BodyView({
   src,
   alt,
-  regions,
+  layers,
   trainedMuscles,
   focusedMuscle,
 }: {
   src: string;
   alt: string;
-  regions: Region[];
+  layers: MaskLayer[];
   trainedMuscles: Set<string>;
   focusedMuscle?: string | null;
 }) {
@@ -80,60 +53,57 @@ function BodyView({
         src={src}
         alt={alt}
         loading="lazy"
-        className="absolute inset-0 h-full w-full object-contain transition-[filter,opacity] duration-300"
-        style={{
-          filter: hasFocus ? "brightness(0.55)" : "brightness(0.95)",
-        }}
+        className="absolute inset-0 h-full w-full object-contain transition-[filter] duration-300"
+        style={{ filter: hasFocus ? "brightness(0.55)" : "brightness(1)" }}
       />
-      <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="absolute inset-0 h-full w-full"
-        aria-hidden="true"
-      >
-        <defs>
-          <radialGradient id="muscleGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.95" />
-            <stop offset="60%" stopColor="var(--primary)" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="muscleGlowDim" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.35" />
-            <stop offset="60%" stopColor="var(--primary)" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        {regions.map((r, i) => {
-          const trained = trainedMuscles.has(r.muscle);
-          const isFocused = focusedMuscle === r.muscle;
-          let opacity = 0;
-          let fill = "url(#muscleGlow)";
-          if (isFocused) {
-            opacity = 1;
-          } else if (hasFocus) {
-            // dim non-focused (even if trained)
-            opacity = trained ? 0.18 : 0;
-            fill = "url(#muscleGlowDim)";
-          } else if (trained) {
-            opacity = 0.95;
-          }
-          return (
-            <ellipse
-              key={i}
-              cx={r.cx}
-              cy={r.cy}
-              rx={r.rx}
-              ry={r.ry}
-              fill={fill}
+      {layers.map((layer) => {
+        const trained = trainedMuscles.has(layer.muscle);
+        const isFocused = focusedMuscle === layer.muscle;
+
+        let opacity = 0;
+        if (isFocused) opacity = 1;
+        else if (hasFocus && trained) opacity = 0.2;
+        else if (trained) opacity = 0.85;
+
+        const maskStyle = {
+          WebkitMaskImage: `url(${layer.src})`,
+          maskImage: `url(${layer.src})`,
+          WebkitMaskSize: "100% 100%",
+          maskSize: "100% 100%",
+          WebkitMaskRepeat: "no-repeat",
+          maskRepeat: "no-repeat",
+          WebkitMaskPosition: "center",
+          maskPosition: "center",
+        } as const;
+
+        return (
+          <div key={layer.muscle} aria-hidden="true">
+            {/* Outer glow halo */}
+            <div
+              className="pointer-events-none absolute inset-0"
               style={{
+                ...maskStyle,
+                background: "var(--primary)",
+                filter: "blur(10px)",
+                opacity: opacity * (isFocused ? 0.9 : 0.55),
                 mixBlendMode: "screen",
-                opacity,
-                transition: "opacity 300ms ease, fill 300ms ease",
+                transition: "opacity 300ms ease",
               }}
             />
-          );
-        })}
-      </svg>
+            {/* Solid red tint following muscle silhouette */}
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                ...maskStyle,
+                background: "var(--primary)",
+                opacity,
+                mixBlendMode: "multiply",
+                transition: "opacity 300ms ease",
+              }}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -150,7 +120,7 @@ export function MuscleDiagram({
         <BodyView
           src={frontBodyImage}
           alt="Front view of human muscle anatomy"
-          regions={FRONT_REGIONS}
+          layers={FRONT_LAYERS}
           trainedMuscles={trainedMuscles}
           focusedMuscle={focusedMuscle}
         />
@@ -162,7 +132,7 @@ export function MuscleDiagram({
         <BodyView
           src={backBodyImage}
           alt="Back view of human muscle anatomy"
-          regions={BACK_REGIONS}
+          layers={BACK_LAYERS}
           trainedMuscles={trainedMuscles}
           focusedMuscle={focusedMuscle}
         />
