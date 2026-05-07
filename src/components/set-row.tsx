@@ -38,6 +38,17 @@ export function SetRow({ index, set, onChange, floatXp, onFloatDone }: Props) {
           : "border-border bg-secondary/30"
       }`}
     >
+      {showFloat && floatXp ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-2 right-12 z-10 animate-fade-up text-sm font-black text-primary"
+          style={{
+            textShadow: "0 0 12px var(--primary-glow), 0 0 22px var(--primary-glow)",
+          }}
+        >
+          +{floatXp} XP
+        </div>
+      ) : null}
       {done && (
         <span
           aria-hidden="true"
