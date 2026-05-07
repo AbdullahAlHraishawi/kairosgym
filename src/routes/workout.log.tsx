@@ -203,20 +203,25 @@ function LogPage() {
     }
     try {
       const res = await finishWorkout(logged, new Date(startedAtRef.current ?? Date.now()));
-      setTimeout(
-        () =>
-          navigate({ to: "/workout/complete", search: { id: res.workoutId } }),
-        350,
-      );
+      navigate({ to: "/workout/complete", search: { id: res.workoutId } });
     } catch (e) {
       console.error("finishWorkout failed", e);
-      setTimeout(() => navigate({ to: "/" }), 350);
+      navigate({ to: "/" });
     }
   };
 
   return (
     <MobileShell hideNav>
-      <SessionIntro />
+      {intro && <SessionIntro onDone={handleIntroDone} />}
+
+      {exiting && (
+        <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+          <Loader2 className="h-14 w-14 animate-spin text-primary drop-shadow-[0_0_18px_var(--primary-glow)]" />
+          <div className="mt-5 text-[11px] font-black uppercase tracking-[0.4em] text-muted-foreground">
+            Saving session…
+          </div>
+        </div>
+      )}
 
       <div
         className={`transition-opacity duration-300 ${exiting ? "opacity-0" : "opacity-100"}`}
