@@ -224,7 +224,7 @@ function LogPage() {
       )}
 
       <div
-        className={`transition-opacity duration-300 ${exiting ? "opacity-0" : "opacity-100"}`}
+        className={`transition-opacity duration-300 ${exiting || intro ? "opacity-0" : "opacity-100"}`}
       >
         {/* Sticky session header */}
         <div
