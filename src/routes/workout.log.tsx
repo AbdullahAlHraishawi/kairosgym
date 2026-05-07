@@ -103,8 +103,6 @@ function LogPage() {
     setTimeout(() => navigate({ to: "/" }), 350);
   };
 
-  const title = deriveTitle(entries);
-
   return (
     <MobileShell hideNav>
       <SessionIntro />
@@ -128,13 +126,7 @@ function LogPage() {
 
         {/* Hero */}
         <div className="mt-6 text-center animate-fade-up">
-          <div
-            className="text-foreground text-3xl font-black uppercase tracking-[0.25em]"
-            style={{ textShadow: "0 0 20px var(--primary-glow)" }}
-          >
-            {title}
-          </div>
-          <div className="mt-3 flex justify-center">
+          <div className="flex justify-center">
             <SessionTimer startedAt={startedAtRef.current} />
           </div>
           <div className="mt-2 text-xs italic text-muted-foreground">
