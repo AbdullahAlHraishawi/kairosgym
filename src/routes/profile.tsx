@@ -51,21 +51,7 @@ function ProfilePage() {
   const [weightOpen, setWeightOpen] = useState(false);
   const [weightInput, setWeightInput] = useState("");
   const [savingWeight, setSavingWeight] = useState(false);
-  const [vvHeight, setVvHeight] = useState<number | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!weightOpen || typeof window === "undefined" || !window.visualViewport) return;
-    const vv = window.visualViewport;
-    const update = () => setVvHeight(vv.height);
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-    };
-  }, [weightOpen]);
   const [badges, setBadges] = useState<
     { code: string; name: string; description: string; icon: string; unlocked: boolean }[]
   >([]);
