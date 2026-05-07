@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Settings,
   ChevronRight,
@@ -17,12 +17,12 @@ import { XpBar } from "@/components/xp-bar";
 import { AtmoCard } from "@/components/atmo-card";
 import { BadgeEmblem } from "@/components/badge-emblem";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -50,6 +50,21 @@ function ProfilePage() {
   const [weightOpen, setWeightOpen] = useState(false);
   const [weightInput, setWeightInput] = useState("");
   const [savingWeight, setSavingWeight] = useState(false);
+  const [vvHeight, setVvHeight] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!weightOpen || typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const update = () => setVvHeight(vv.height);
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [weightOpen]);
   const [badges, setBadges] = useState<
     { code: string; name: string; description: string; icon: string; unlocked: boolean }[]
   >([]);
@@ -261,18 +276,26 @@ function ProfilePage() {
         </div>
       </section>
 
-      <Drawer open={weightOpen} onOpenChange={setWeightOpen}>
-        <DrawerContent className="card-premium">
-          <DrawerHeader>
-            <DrawerTitle className="text-display uppercase tracking-widest text-center">
+      <Dialog open={weightOpen} onOpenChange={setWeightOpen}>
+        <DialogContent
+          className="card-premium w-[calc(100vw-2rem)] max-w-sm rounded-2xl p-5"
+          style={
+            vvHeight
+              ? { top: vvHeight / 2, transform: "translate(-50%, -50%)" }
+              : undefined
+          }
+        >
+          <DialogHeader>
+            <DialogTitle className="text-display uppercase tracking-widest text-center">
               Body weight
-            </DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-2">
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-1">
             <label className="text-[11px] uppercase tracking-widest text-muted-foreground">
               Weight (kg)
             </label>
             <Input
+              ref={inputRef}
               type="number"
               inputMode="decimal"
               min={30}
@@ -280,24 +303,30 @@ function ProfilePage() {
               step="0.1"
               value={weightInput}
               onChange={(e) => setWeightInput(e.target.value)}
+              onFocus={() =>
+                setTimeout(
+                  () => inputRef.current?.scrollIntoView({ block: "center" }),
+                  300,
+                )
+              }
               placeholder="e.g. 78"
               className="mt-1 text-display text-lg"
               autoFocus
             />
             <p className="mt-2 text-[10px] italic text-muted-foreground">
-              Used only to estimate calories burned during your sessions.
+              Estimate only. Used to calculate calories burned.
             </p>
           </div>
-          <DrawerFooter className="flex-row gap-2">
-            <Button variant="ghost" className="flex-1" onClick={() => setWeightOpen(false)}>
+          <DialogFooter className="mt-2 flex-row gap-2 sm:justify-end">
+            <Button variant="ghost" className="flex-1 sm:flex-none" onClick={() => setWeightOpen(false)}>
               Cancel
             </Button>
-            <Button className="flex-1" onClick={saveWeight} disabled={savingWeight}>
+            <Button className="flex-1 sm:flex-none" onClick={saveWeight} disabled={savingWeight}>
               {savingWeight ? "Saving…" : "Save"}
             </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MobileShell>
   );
 }
