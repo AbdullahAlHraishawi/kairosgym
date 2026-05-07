@@ -50,6 +50,7 @@ function LogPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [loadingExercises, setLoadingExercises] = useState(true);
   const startedAtRef = useRef<number>(Date.now());
   const subtitle = useMemo(
     () => SUBTITLES[Math.floor(Math.random() * SUBTITLES.length)],
@@ -64,7 +65,10 @@ function LogPage() {
   useEffect(() => {
     const raw = sessionStorage.getItem("kairos_picked");
     const ids: string[] = raw ? JSON.parse(raw) : [];
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      setLoadingExercises(false);
+      return;
+    }
     void supabase
       .from("exercises")
       .select("id, name, muscle_group")
@@ -83,6 +87,7 @@ function LogPage() {
             ],
           })),
         );
+        setLoadingExercises(false);
       });
   }, []);
 
