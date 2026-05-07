@@ -191,7 +191,7 @@ function LogPage() {
       >
         {/* Sticky session header */}
         <div
-          className="sticky top-0 z-20 -mx-5 px-5 pt-3 pb-4 backdrop-blur-md"
+          className="sticky top-0 z-20 -mx-5 px-5 pt-3 pb-4 backdrop-blur-md relative"
           style={{
             background:
               "linear-gradient(180deg, color-mix(in oklab, var(--background) 92%, transparent) 0%, color-mix(in oklab, var(--background) 80%, transparent) 100%)",
