@@ -252,7 +252,7 @@ function LogPage() {
           {/* Hero */}
           <div className="mt-3 text-center animate-fade-up">
             <div className="flex justify-center">
-              <SessionTimer startedAt={startedAtRef.current} />
+              <SessionTimer startedAt={startedAtRef.current ?? Date.now()} />
             </div>
             <div className="mt-1 text-xs italic text-muted-foreground">
               {subtitle}
