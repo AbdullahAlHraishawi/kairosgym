@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress, xpForSet } from "@/lib/xp";
-import { persistSessionXp } from "@/lib/workout";
+import { finishWorkout } from "@/lib/workout";
 
 export const Route = createFileRoute("/workout/log")({
   head: () => ({
@@ -171,15 +171,35 @@ function LogPage() {
       return next;
     });
 
+  const submittingRef = useRef(false);
   const completeSession = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setExiting(true);
+    const logged = entries
+      .map((e) => ({
+        exerciseId: e.info.id,
+        sets: e.sets
+          .filter((s) => s.done && s.reps > 0)
+          .map((s) => ({ weight: s.weight, reps: s.reps })),
+      }))
+      .filter((e) => e.sets.length > 0);
     sessionStorage.removeItem("kairos_picked");
-    try {
-      if (sessionXp > 0) await persistSessionXp(sessionXp);
-    } catch (e) {
-      console.error("persistSessionXp failed", e);
+    if (logged.length === 0) {
+      setTimeout(() => navigate({ to: "/" }), 350);
+      return;
     }
-    setTimeout(() => navigate({ to: "/" }), 350);
+    try {
+      const res = await finishWorkout(logged);
+      setTimeout(
+        () =>
+          navigate({ to: "/workout/complete", search: { id: res.workoutId } }),
+        350,
+      );
+    } catch (e) {
+      console.error("finishWorkout failed", e);
+      setTimeout(() => navigate({ to: "/" }), 350);
+    }
   };
 
   return (
