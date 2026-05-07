@@ -26,7 +26,7 @@ function ProgressPage() {
   const [weekData, setWeekData] = useState<{ day: string; xp: number }[]>([]);
   const [delta, setDelta] = useState(0);
   const [muscles, setMuscles] = useState<Set<string>>(new Set());
-  const [stats, setStats] = useState({ workouts: 0, hours: 0, calories: 0 });
+  const [stats, setStats] = useState({ workouts: 0, hours: 0, calories: 0, sets: 0, reps: 0, volume: 0 });
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -64,10 +64,27 @@ function ProgressPage() {
         .from("workouts")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id);
+
+      // Lifetime sets/reps/volume from completed sets
+      const { data: lifeSets } = await supabase
+        .from("workout_sets")
+        .select("weight, reps, completed, workout_exercises!inner(workouts!inner(user_id))")
+        .eq("completed", true)
+        .eq("workout_exercises.workouts.user_id", user.id);
+      let lSets = 0, lReps = 0, lVol = 0;
+      (lifeSets ?? []).forEach((s: { weight: number | string; reps: number }) => {
+        lSets += 1;
+        lReps += s.reps ?? 0;
+        lVol += Number(s.weight ?? 0) * (s.reps ?? 0);
+      });
+
       setStats({
         workouts: wCount ?? 0,
         hours: Math.round(totalSecs / 360) / 10,
         calories: Math.round((wCount ?? 0) * 285),
+        sets: lSets,
+        reps: lReps,
+        volume: lVol,
       });
 
       // muscles trained in last 30 days
