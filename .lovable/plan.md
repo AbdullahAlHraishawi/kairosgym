@@ -1,61 +1,34 @@
-# Auto-derived calorie intensity from sets/reps
+# Center the body-weight prompt + keep it above the keyboard
 
-Upgrade the calorie estimate so MET is chosen per-session based on how the user actually trained (rep ranges), instead of a flat 5.0.
+Revert to a centered modal (not a bottom drawer) and fix the original problem — the on-screen keyboard covering the input — by anchoring the modal to the visible viewport instead of the full screen.
 
-## Intensity rule
+## Approach
 
-For each completed session, compute the **average reps per completed set** across all exercises:
+Keep using shadcn `Dialog` (centered), but add two small behaviors:
 
-- avg reps **< 6** → heavy strength → **MET 6.0**
-- avg reps **6–12** → hypertrophy / moderate → **MET 5.0**
-- avg reps **> 12** → endurance / light → **MET 3.5**
-- no completed sets → fall back to **MET 5.0**
+1. **Track the visible viewport.** Use `window.visualViewport` to detect when the keyboard opens. When it does, the visual viewport height shrinks. Apply that height as a CSS variable and translate the dialog so its center sits in the middle of the *visible* area, not the full screen.
 
-Formula stays:
-```text
-kcal = MET × weight_kg × duration_hours
-```
+2. **Compact dialog.** Keep the dialog content short (title + single input + 2 buttons, no extra padding) so it always fits inside the reduced viewport above the keyboard.
 
-This uses data we already store (`workout_sets.reps`, `completed`) — no new columns, no extra UI taps.
+3. **Scroll input into view on focus** as a fallback for browsers without `visualViewport` support.
 
-## Code changes
+## Changes
 
-**`src/lib/calories.ts`**
-- Add `metForAvgReps(avgReps: number | null): number` returning 6.0 / 5.0 / 3.5 / 5.0.
-- Add `estimateCaloriesFromSession(weightKg, durationSeconds, avgReps)` that picks MET then calls the existing math.
-- Keep existing `estimateCalories(weight, secs)` (defaults to MET 5.0) for places where we don't have set data.
+**`src/routes/profile.tsx`**
+- Revert: switch back from `Drawer` to `Dialog` / `DialogContent` / `DialogHeader` / `DialogTitle` / `DialogFooter`.
+- Wrap the dialog content in a small inline component that:
+  - subscribes to `window.visualViewport` resize/scroll
+  - sets `style={{ maxHeight: visualViewport.height - 32 }}` on the content
+  - calls `inputRef.current?.scrollIntoView({ block: "center" })` on focus
+- Tighten padding so the whole modal is ~260px tall.
 
-**`src/routes/workout.complete.tsx`**
-- Already fetches completed sets. Compute `avgReps = totalReps / setsCount` and pass to `estimateCaloriesFromSession`.
-- Add a small label under the calorie value: `Heavy · MET 6.0` / `Moderate · MET 5.0` / `Light · MET 3.5` so the user understands why the number is what it is. Styled `text-[10px] text-muted-foreground tracking-widest`.
-
-**`src/routes/progress.tsx` (lifetime Calories tile)**
-- Currently sums total seconds only. Switch to summing **per-workout kcal**:
-  - Fetch each workout's `started_at`, `finished_at`, plus its completed sets' `reps`.
-  - For each workout: compute its own avg reps → its own MET → its own kcal. Sum across all workouts.
-- Same conditional "Set weight" prompt when `weight_kg` is null.
-
-**`src/routes/index.tsx` (home Calories stat)**
-- Same per-workout aggregation as Progress. Reuse the same query shape.
-- Extract the per-workout-kcal aggregation into a small helper in `src/lib/calories.ts` (`sumWorkoutCalories(rows, weightKg)`) so Home and Progress share it.
-
-## What stays the same
-
-- Profile body-weight editor and gating logic — unchanged.
-- Disclaimer text — unchanged.
-- DB schema — unchanged. No migration.
-- All other UI (level card, summary card layout, bottom nav, etc.) — untouched.
+**No changes** to the calorie logic, the body-weight save flow, or anything else.
 
 ## Out of scope
 
-- Per-exercise MET (cardio vs compound vs isolation).
-- Volume bonus / mechanical work term — declined per choice.
-- Heart rate, RPE, rest-time tracking.
-- Unit toggle (kg only).
+- Changing other dialogs in the app
+- Adding viewport handling globally (only this dialog needs it for now)
 
 ## Files touched
 
-- edit `src/lib/calories.ts` — add intensity helper + per-workout aggregator
-- edit `src/routes/workout.complete.tsx` — pass avg reps, show intensity tag
-- edit `src/routes/progress.tsx` — per-workout kcal aggregation
-- edit `src/routes/index.tsx` — per-workout kcal aggregation
+- edit `src/routes/profile.tsx` — switch back to Dialog, add visualViewport-aware sizing
