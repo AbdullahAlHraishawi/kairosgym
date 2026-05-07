@@ -28,24 +28,6 @@ const SUBTITLES = [
   "Outwork yesterday.",
 ];
 
-const MUSCLE_TO_TITLE: Record<string, string> = {
-  Arms: "ARM DAY",
-  Chest: "CHEST DAY",
-  Back: "BACK DAY",
-  Legs: "LEG DAY",
-  Shoulders: "SHOULDER DAY",
-};
-
-function deriveTitle(entries: Entry[]): string {
-  if (entries.length === 0) return "TRAINING DAY";
-  const counts: Record<string, number> = {};
-  for (const e of entries) {
-    counts[e.info.muscle_group] = (counts[e.info.muscle_group] ?? 0) + 1;
-  }
-  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
-  return (top && MUSCLE_TO_TITLE[top]) || "TRAINING DAY";
-}
-
 function LogPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -121,8 +103,6 @@ function LogPage() {
     setTimeout(() => navigate({ to: "/" }), 350);
   };
 
-  const title = deriveTitle(entries);
-
   return (
     <MobileShell hideNav>
       <SessionIntro />
@@ -146,13 +126,7 @@ function LogPage() {
 
         {/* Hero */}
         <div className="mt-6 text-center animate-fade-up">
-          <div
-            className="text-foreground text-3xl font-black uppercase tracking-[0.25em]"
-            style={{ textShadow: "0 0 20px var(--primary-glow)" }}
-          >
-            {title}
-          </div>
-          <div className="mt-3 flex justify-center">
+          <div className="flex justify-center">
             <SessionTimer startedAt={startedAtRef.current} />
           </div>
           <div className="mt-2 text-xs italic text-muted-foreground">
