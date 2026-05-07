@@ -116,11 +116,11 @@ function LogPage() {
       // Overlay
       setLevelUpValue(newLevel);
       setLevelUpPhase("in");
-      const t4 = setTimeout(() => setLevelUpPhase("out"), 1900);
+      const t4 = setTimeout(() => setLevelUpPhase("out"), 2900);
       const t5 = setTimeout(() => {
         setLevelUpPhase("idle");
         setLevelUpValue(null);
-      }, 2400);
+      }, 3400);
 
       prevLevelRef.current = lp.level;
       return () => {
@@ -254,7 +254,7 @@ function LogPage() {
                     filter: "blur(8px)",
                   }}
                 />
-                <div className="relative text-center">
+                <div className="relative rounded-2xl border border-primary/30 bg-background/40 px-8 py-5 text-center backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
                   <div className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">
                     Level
                   </div>
