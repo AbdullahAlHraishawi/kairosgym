@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { TrendingUp, TrendingDown, Clock, Trophy, Flame, Dumbbell } from "lucide-react";
@@ -6,6 +6,7 @@ import { MobileShell } from "@/components/mobile-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { supabase } from "@/integrations/supabase/client";
+import { estimateCalories, CAL_DISCLAIMER } from "@/lib/calories";
 
 export const Route = createFileRoute("/progress")({
   head: () => ({
@@ -26,7 +27,7 @@ function ProgressPage() {
   const [weekData, setWeekData] = useState<{ day: string; xp: number }[]>([]);
   const [delta, setDelta] = useState(0);
   const [muscles, setMuscles] = useState<Set<string>>(new Set());
-  const [stats, setStats] = useState({ workouts: 0, hours: 0, calories: 0, sets: 0, reps: 0, volume: 0 });
+  const [stats, setStats] = useState({ workouts: 0, hours: 0, totalSecs: 0, sets: 0, reps: 0, volume: 0 });
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -81,7 +82,7 @@ function ProgressPage() {
       setStats({
         workouts: wCount ?? 0,
         hours: Math.round(totalSecs / 360) / 10,
-        calories: Math.round((wCount ?? 0) * 285),
+        totalSecs,
         sets: lSets,
         reps: lReps,
         volume: lVol,
@@ -194,12 +195,36 @@ function ProgressPage() {
       <section className="mt-5 grid grid-cols-2 gap-3">
         <Tile icon={<Dumbbell className="h-4 w-4" />} label="Workouts" value={stats.workouts} />
         <Tile icon={<Clock className="h-4 w-4" />} label="Hours" value={stats.hours} />
-        <Tile icon={<Flame className="h-4 w-4" />} label="Calories" value={stats.calories} />
+        {profile?.weight_kg ? (
+          <Tile
+            icon={<Flame className="h-4 w-4" />}
+            label="Calories"
+            value={estimateCalories(profile.weight_kg, stats.totalSecs)}
+          />
+        ) : (
+          <Link
+            to="/profile"
+            className="press card-premium flex flex-col justify-center rounded-2xl p-4"
+          >
+            <div className="text-primary flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15">
+              <Flame className="h-4 w-4" />
+            </div>
+            <div className="text-foreground mt-2 text-sm font-bold leading-tight">
+              Set weight in profile
+            </div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              to track calories →
+            </div>
+          </Link>
+        )}
         <Tile icon={<Trophy className="h-4 w-4" />} label="Total XP" value={profile?.total_xp ?? 0} />
         <Tile icon={<Dumbbell className="h-4 w-4" />} label="Sets" value={stats.sets} />
         <Tile icon={<TrendingUp className="h-4 w-4" />} label="Reps" value={stats.reps} />
         <Tile icon={<Trophy className="h-4 w-4" />} label="Volume kg" value={stats.volume} />
       </section>
+      {profile?.weight_kg && (
+        <p className="mt-2 text-[10px] italic text-muted-foreground">{CAL_DISCLAIMER}</p>
+      )}
     </MobileShell>
   );
 }
