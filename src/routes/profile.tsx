@@ -18,8 +18,6 @@ import { XpBar } from "@/components/xp-bar";
 import { AtmoCard } from "@/components/atmo-card";
 import { BadgeEmblem } from "@/components/badge-emblem";
 import {
-  Dialog,
-  DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
