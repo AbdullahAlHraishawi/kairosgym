@@ -1,71 +1,61 @@
-# Accurate Calorie Estimate
+# Auto-derived calorie intensity from sets/reps
 
-Replace the placeholder `workouts × 285 kcal` with a real MET-based estimate that uses the user's bodyweight and actual session duration.
+Upgrade the calorie estimate so MET is chosen per-session based on how the user actually trained (rep ranges), instead of a flat 5.0.
 
-## 1. Database
+## Intensity rule
 
-Add a `weight_kg` column to `profiles` (nullable numeric). No default — null means "not entered yet" so the UI can prompt the user.
+For each completed session, compute the **average reps per completed set** across all exercises:
 
-## 2. Calorie formula
+- avg reps **< 6** → heavy strength → **MET 6.0**
+- avg reps **6–12** → hypertrophy / moderate → **MET 5.0**
+- avg reps **> 12** → endurance / light → **MET 3.5**
+- no completed sets → fall back to **MET 5.0**
 
-Standard MET formula:
-
+Formula stays:
 ```text
 kcal = MET × weight_kg × duration_hours
 ```
 
-- MET = **5.0** (resistance training, moderate effort — ACSM Compendium of Physical Activities reference value)
-- `duration_hours` = `(finished_at − started_at) / 3600` per workout, summed across the relevant range
-- Only count workouts that have a `finished_at`
+This uses data we already store (`workout_sets.reps`, `completed`) — no new columns, no extra UI taps.
 
-Helper lives in `src/lib/calories.ts`:
-- `estimateCalories(weightKg, durationSeconds): number`
-- `METS_STRENGTH = 5.0` constant (single source of truth)
+## Code changes
 
-## 3. Profile page — weight input
+**`src/lib/calories.ts`**
+- Add `metForAvgReps(avgReps: number | null): number` returning 6.0 / 5.0 / 3.5 / 5.0.
+- Add `estimateCaloriesFromSession(weightKg, durationSeconds, avgReps)` that picks MET then calls the existing math.
+- Keep existing `estimateCalories(weight, secs)` (defaults to MET 5.0) for places where we don't have set data.
 
-Add a new "Body weight" row in the Profile menu section (above Stats):
-- Shows current weight in kg, or "Not set" if null
-- Tapping opens a small dialog/sheet to enter weight (numeric input, kg, range 30–300)
-- Saves to `profiles.weight_kg` via `supabase.from('profiles').update(...)`
-- `useProfile` hook returns the new field automatically once types regenerate
+**`src/routes/workout.complete.tsx`**
+- Already fetches completed sets. Compute `avgReps = totalReps / setsCount` and pass to `estimateCaloriesFromSession`.
+- Add a small label under the calorie value: `Heavy · MET 6.0` / `Moderate · MET 5.0` / `Light · MET 3.5` so the user understands why the number is what it is. Styled `text-[10px] text-muted-foreground tracking-widest`.
 
-## 4. Where calories appear
+**`src/routes/progress.tsx` (lifetime Calories tile)**
+- Currently sums total seconds only. Switch to summing **per-workout kcal**:
+  - Fetch each workout's `started_at`, `finished_at`, plus its completed sets' `reps`.
+  - For each workout: compute its own avg reps → its own MET → its own kcal. Sum across all workouts.
+- Same conditional "Set weight" prompt when `weight_kg` is null.
 
-Replace the placeholder in three places. Behavior in each:
+**`src/routes/index.tsx` (home Calories stat)**
+- Same per-workout aggregation as Progress. Reuse the same query shape.
+- Extract the per-workout-kcal aggregation into a small helper in `src/lib/calories.ts` (`sumWorkoutCalories(rows, weightKg)`) so Home and Progress share it.
 
-**a. Home (`src/routes/index.tsx`)** — third stat tile
-- If `profile.weight_kg` is null: tile shows "Set weight in profile" (small text, tappable, links to `/profile`)
-- If set: shows total lifetime kcal from all completed workouts, with a tiny "*est." caption under the number
+## What stays the same
 
-**b. Progress (`src/routes/progress.tsx`)** — Calories Tile
-- Same behavior. Compute from the lifetime workout durations already fetched (we already sum `totalSecs`).
-- If weight set: `kcal = 5 × weight_kg × (totalSecs / 3600)`
-- If not: tile renders "Add weight in profile →" linking to `/profile`
-
-**c. Workout summary (`src/routes/workout.complete.tsx`)** — add a new "Calories" row in the Summary card, between Volume and the level bar
-- If weight set: `≈ N kcal` for that one session's duration
-- If not: row reads "Set weight in profile to track" with a small link
-
-## 5. Disclaimer
-
-A single small caption is added once on each screen near the calorie value:
-> *Estimate only — based on your weight & session duration.*
-
-Styled as `text-[10px] text-muted-foreground italic`. Not repeated per tile if multiple are visible.
-
-## Files touched
-
-- migration: add `weight_kg numeric` to `profiles`
-- new: `src/lib/calories.ts`
-- edit: `src/routes/profile.tsx` (weight editor row + dialog)
-- edit: `src/routes/index.tsx` (Calories StatCard logic)
-- edit: `src/routes/progress.tsx` (Calories Tile logic + use durations)
-- edit: `src/routes/workout.complete.tsx` (Calories summary row)
+- Profile body-weight editor and gating logic — unchanged.
+- Disclaimer text — unchanged.
+- DB schema — unchanged. No migration.
+- All other UI (level card, summary card layout, bottom nav, etc.) — untouched.
 
 ## Out of scope
 
-- No per-exercise MET tuning (cardio vs strength) — single MET=5.0 for now
-- No height / age / sex / heart-rate inputs
-- No unit toggle (lb/kg) — kg only
-- No redesign of any screen; only the calorie tile/row content changes
+- Per-exercise MET (cardio vs compound vs isolation).
+- Volume bonus / mechanical work term — declined per choice.
+- Heart rate, RPE, rest-time tracking.
+- Unit toggle (kg only).
+
+## Files touched
+
+- edit `src/lib/calories.ts` — add intensity helper + per-workout aggregator
+- edit `src/routes/workout.complete.tsx` — pass avg reps, show intensity tag
+- edit `src/routes/progress.tsx` — per-workout kcal aggregation
+- edit `src/routes/index.tsx` — per-workout kcal aggregation
