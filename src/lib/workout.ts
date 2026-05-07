@@ -7,6 +7,7 @@ export interface LoggedExercise {
 }
 
 export interface FinishResult {
+  workoutId: string;
   xpEarned: number;
   newTotalXp: number;
   newLevel: number;
