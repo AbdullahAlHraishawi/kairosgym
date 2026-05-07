@@ -5,7 +5,7 @@ import { MobileShell } from "@/components/mobile-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
-export const Route = createFileRoute("/workout")({
+export const Route = createFileRoute("/workout/")({
   head: () => ({
     meta: [
       { title: "Workout — KAIROS" },
