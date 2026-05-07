@@ -74,34 +74,25 @@ function BodyView({
           maskRepeat: "no-repeat",
           WebkitMaskPosition: "center",
           maskPosition: "center",
+          // Use luminance so white pixels = visible, black/transparent = clear.
+          // Prevents masks with opaque black backgrounds from flooding the body.
+          WebkitMaskMode: "luminance",
+          maskMode: "luminance",
         } as const;
 
         return (
-          <div key={layer.muscle} aria-hidden="true">
-            {/* Outer glow halo */}
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                ...maskStyle,
-                background: "var(--primary)",
-                filter: "blur(10px)",
-                opacity: opacity * (isFocused ? 0.9 : 0.55),
-                mixBlendMode: "screen",
-                transition: "opacity 300ms ease",
-              }}
-            />
-            {/* Solid red tint following muscle silhouette */}
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                ...maskStyle,
-                background: "var(--primary)",
-                opacity,
-                mixBlendMode: "hard-light",
-                transition: "opacity 300ms ease",
-              }}
-            />
-          </div>
+          <div
+            key={layer.muscle}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+            style={{
+              ...maskStyle,
+              background: "var(--primary)",
+              opacity,
+              mixBlendMode: "hard-light",
+              transition: "opacity 300ms ease",
+            }}
+          />
         );
       })}
     </div>
