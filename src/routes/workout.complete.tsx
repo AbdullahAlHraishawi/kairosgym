@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Flame, Home } from "lucide-react";
+import { Home } from "lucide-react";
 import { z } from "zod";
 import { MobileShell } from "@/components/mobile-shell";
 import { XpBar } from "@/components/xp-bar";
