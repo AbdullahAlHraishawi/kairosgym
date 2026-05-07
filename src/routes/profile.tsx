@@ -17,12 +17,12 @@ import { XpBar } from "@/components/xp-bar";
 import { AtmoCard } from "@/components/atmo-card";
 import { BadgeEmblem } from "@/components/badge-emblem";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
