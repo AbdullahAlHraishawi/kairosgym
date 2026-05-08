@@ -102,6 +102,7 @@ function LogPage() {
           setStartedAt(new Date(existing.startedAt).getTime());
           setEntries(draftToEntries(existing));
           setIntro(false); // resume silently
+          sessionReadyRef.current = true;
           setLoadingSession(false);
           sessionStorage.removeItem("kairos_picked");
           return;
@@ -114,11 +115,17 @@ function LogPage() {
         setWorkoutId(draft.workoutId);
         setStartedAt(new Date(draft.startedAt).getTime());
         setEntries(draftToEntries(draft));
-        setIntro(true);
+        sessionReadyRef.current = true;
         setLoadingSession(false);
+        // If splash timer already finished while we were loading, dismiss now
+        if (introTimerDoneRef.current) setIntro(false);
       } catch (e) {
         console.error("Failed to load session", e);
-        if (!cancelled) setLoadingSession(false);
+        if (!cancelled) {
+          sessionReadyRef.current = true;
+          setLoadingSession(false);
+          if (introTimerDoneRef.current) setIntro(false);
+        }
       }
     })();
     return () => {
@@ -127,7 +134,10 @@ function LogPage() {
   }, [loading, user]);
 
   const handleIntroDone = () => {
-    setIntro(false);
+    introTimerDoneRef.current = true;
+    // Only hide splash once the session data is ready, so we never reveal
+    // a half-built page.
+    if (sessionReadyRef.current) setIntro(false);
   };
 
   // Live session XP from completed sets only
