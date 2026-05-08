@@ -160,7 +160,7 @@ export async function updateDraftSet(
   setId: string,
   patch: Partial<{ weight: number; reps: number; done: boolean }>,
 ): Promise<void> {
-  const dbPatch: Record<string, unknown> = {};
+  const dbPatch: { weight?: number; reps?: number; completed?: boolean } = {};
   if (patch.weight !== undefined) dbPatch.weight = patch.weight;
   if (patch.reps !== undefined) dbPatch.reps = patch.reps;
   if (patch.done !== undefined) dbPatch.completed = patch.done;
