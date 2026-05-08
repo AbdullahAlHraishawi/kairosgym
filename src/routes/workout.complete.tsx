@@ -78,7 +78,7 @@ function CompletePage() {
   }, [loading, user, navigate]);
 
   useEffect(() => {
-    if (!id || !user) return;
+    if (loading || !user || !id) return;
     void (async () => {
       const { data: workout } = await supabase
         .from("workouts")
