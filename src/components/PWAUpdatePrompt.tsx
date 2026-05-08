@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
+import { useLocation } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 
@@ -24,6 +25,8 @@ function isPWAEligible() {
 }
 
 export const PWAUpdatePrompt = () => {
+  const { pathname } = useLocation();
+  if (pathname !== "/") return null;
   if (!isPWAEligible()) return null;
   return <PWAUpdatePromptInner />;
 };
