@@ -102,14 +102,21 @@ function LogPage() {
       try {
         const existing = await loadOpenWorkout();
         if (cancelled) return;
+        const plannedLaunch = !!sessionStorage.getItem("kairos_planned_launch");
         if (existing) {
           setWorkoutId(existing.workoutId);
           setStartedAt(new Date(existing.startedAt).getTime());
           setEntries(draftToEntries(existing));
-          setIntro(false); // resume silently
           sessionReadyRef.current = true;
           setLoadingSession(false);
           sessionStorage.removeItem("kairos_picked");
+          sessionStorage.removeItem("kairos_planned_launch");
+          if (plannedLaunch) {
+            // Show splash; dismiss when timer finishes
+            if (introTimerDoneRef.current) setIntro(false);
+          } else {
+            setIntro(false); // pure resume
+          }
           return;
         }
         const raw = sessionStorage.getItem("kairos_picked");
