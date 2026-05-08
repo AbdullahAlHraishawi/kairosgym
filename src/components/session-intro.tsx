@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 export function SessionIntro({ onDone }: { onDone?: () => void }) {
   const [phase, setPhase] = useState<"in" | "out">("in");
@@ -28,9 +29,11 @@ export function SessionIntro({ onDone }: { onDone?: () => void }) {
     };
   }, []);
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background transition-opacity duration-500 ease-out"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-background transition-opacity duration-500 ease-out"
       style={{ opacity: phase === "in" ? 1 : 0, touchAction: "none" }}
       aria-hidden="true"
     >
@@ -48,6 +51,7 @@ export function SessionIntro({ onDone }: { onDone?: () => void }) {
           Session Started
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

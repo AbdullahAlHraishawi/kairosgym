@@ -60,7 +60,13 @@ function LogPage() {
   const { profile } = useProfile(user?.id);
   const [entries, setEntries] = useState<EntryState[]>([]);
   const [loadingSession, setLoadingSession] = useState(true);
-  const [intro, setIntro] = useState(false);
+  // Show splash immediately if we're starting a brand-new session (picks queued)
+  const [intro, setIntro] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !!window.sessionStorage.getItem("kairos_picked");
+  });
+  const introTimerDoneRef = useRef(false);
+  const sessionReadyRef = useRef(false);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const subtitle = useMemo(
@@ -96,6 +102,7 @@ function LogPage() {
           setStartedAt(new Date(existing.startedAt).getTime());
           setEntries(draftToEntries(existing));
           setIntro(false); // resume silently
+          sessionReadyRef.current = true;
           setLoadingSession(false);
           sessionStorage.removeItem("kairos_picked");
           return;
@@ -108,11 +115,17 @@ function LogPage() {
         setWorkoutId(draft.workoutId);
         setStartedAt(new Date(draft.startedAt).getTime());
         setEntries(draftToEntries(draft));
-        setIntro(true);
+        sessionReadyRef.current = true;
         setLoadingSession(false);
+        // If splash timer already finished while we were loading, dismiss now
+        if (introTimerDoneRef.current) setIntro(false);
       } catch (e) {
         console.error("Failed to load session", e);
-        if (!cancelled) setLoadingSession(false);
+        if (!cancelled) {
+          sessionReadyRef.current = true;
+          setLoadingSession(false);
+          if (introTimerDoneRef.current) setIntro(false);
+        }
       }
     })();
     return () => {
@@ -121,7 +134,10 @@ function LogPage() {
   }, [loading, user]);
 
   const handleIntroDone = () => {
-    setIntro(false);
+    introTimerDoneRef.current = true;
+    // Only hide splash once the session data is ready, so we never reveal
+    // a half-built page.
+    if (sessionReadyRef.current) setIntro(false);
   };
 
   // Live session XP from completed sets only
