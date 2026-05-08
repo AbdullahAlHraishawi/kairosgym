@@ -1,101 +1,76 @@
+# Fix swipe flicker by persistently mounting all tabs
 
-# Add PWA + Update Prompt to KAIROS
+## Root cause
 
-Port the Serein Wear update flow into KAIROS, restyled with semantic tokens. Wire up a real service worker via `vite-plugin-pwa` so the prompt actually triggers on new deploys.
+Each tab route (`/`, `/workout`, `/progress`, `/leaderboard`, `/profile`) renders its own `MobileShell`. The current swipe handler in `mobile-shell.tsx` animates the *current* shell's `<main>` off-screen, then on `transitionend` calls `navigate({ to: nextTab })`. The next page is **not pre-rendered** — it doesn't exist in the DOM until navigation completes. So during the slide:
 
-## Heads-up (will mention to user after build)
+1. Current shell translates out → empty background visible behind it (the "next page begins to appear" is actually the background showing through).
+2. `navigate()` unmounts the old shell and mounts the new shell.
+3. New shell mounts with `transform: ""` (reset to 0), but for one frame React paints the previous URL's match + a flash before the new component takes over → the perceived "flashback".
+4. Final paint of the new tab.
 
-- PWA only activates in the **published** build, not the editor preview. The editor will show the app exactly as today.
-- Service worker is guarded against iframes and preview hostnames so it never registers in the Lovable editor (prevents stale-cache bugs).
-- KAIROS already has `manifest.webmanifest` + theme color + apple meta tags — those stay as-is.
+There is no shared, persistent container holding both the current and next tab simultaneously. Fix requires real persistent mounting.
 
-## Files
+## Architecture change
 
-### 1. `vite.config.ts` — register `vite-plugin-pwa`
-```ts
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import { VitePWA } from "vite-plugin-pwa";
+Introduce a single `TabsShell` that mounts **all 5 tab content components at once** in a horizontally stacked strip. The strip's `translateX` is driven by a *local* `activeIndex` state, not by router state. URL navigation happens **after** the slide animation finishes (via `replace`), so React never has to swap the page mid-transition.
 
-export default defineConfig({
-  vite: {
-    plugins: [
-      VitePWA({
-        registerType: "autoUpdate",
-        injectRegister: false, // we register manually with iframe guard
-        devOptions: { enabled: false },
-        manifest: false, // keep existing public/manifest.webmanifest
-        workbox: {
-          navigateFallbackDenylist: [/^\/api/, /^\/~oauth/],
-          runtimeCaching: [
-            {
-              urlPattern: ({ request }) => request.mode === "navigate",
-              handler: "NetworkFirst",
-              options: { cacheName: "html", networkTimeoutSeconds: 3 },
-            },
-            {
-              urlPattern: ({ request }) =>
-                ["style", "script", "worker", "image", "font"].includes(request.destination),
-              handler: "StaleWhileRevalidate",
-              options: { cacheName: "assets" },
-            },
-          ],
-        },
-      }),
-    ],
-  },
-});
+Sub-routes that aren't tabs (`/workout/log`, `/workout/complete`, `/auth`, `/ranks`) bypass the tabs shell and render normally with their own `MobileShell`.
+
+```text
+__root
+ └─ TabsShell (mounted whenever pathname ∈ tab paths)
+     ├─ panel: HomeContent          (always mounted)
+     ├─ panel: WorkoutContent       (always mounted)
+     ├─ panel: ProgressContent      (always mounted)
+     ├─ panel: LeaderboardContent   (always mounted)
+     └─ panel: ProfileContent       (always mounted)
 ```
 
-### 2. `src/components/PWAUpdatePrompt.tsx` — new, KAIROS-styled
+## Steps
 
-Same logic as Serein Wear:
-- `useRegisterSW` from `virtual:pwa-register/react`
-- Auto check for updates every 60s via `registration.update()`
-- Stuck detection after 3 failures → shows "Cache stuck — tap to fix" with Clear Cache button
-- Update available state → shows "Update available" with Update button that calls `updateServiceWorker(true)`
+### 1. Extract page bodies from `MobileShell` wrappers
+For each of `index.tsx`, `workout.index.tsx`, `progress.tsx`, `leaderboard.tsx`, `profile.tsx`:
+- Export a content-only component (e.g. `HomeContent`) that renders the page **without** wrapping in `<MobileShell>`. The route's `component` keeps its current behavior for direct URL hits but the TabsShell imports the content directly.
+- Remove the per-tab `MobileShell` wrapper from these 5 pages — the shell becomes the parent.
 
-Restyled with KAIROS tokens:
-- Container: `bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-glow`
-- Update icon `text-primary`, label `text-foreground`
-- Update button: existing primary button styling (`bg-primary text-primary-foreground`)
-- Stuck state: `border-destructive/40 bg-destructive/10`, destructive button
-- Position: `fixed bottom-24 left-1/2 -translate-x-1/2 z-50` (above bottom nav, within `max-w-md`)
-- Animation: `animate-in slide-in-from-bottom-4 fade-in duration-300`
+### 2. Create `src/components/tabs-shell.tsx`
+A single component that:
+- Renders 5 absolutely-positioned panels side-by-side inside a horizontal strip (`width: 500%`, each panel `width: 20%`).
+- Owns `activeIndex` local state, initialized from current pathname.
+- Each panel wraps its content in an independently scrollable container (`overflow-y: auto`, `height: 100dvh`) so each tab preserves its own scroll position naturally (the DOM nodes are never unmounted).
+- Strip transform: `translate3d(${-activeIndex * 100}vw + dragDx, 0, 0)` with `will-change: transform`.
+- Touch handlers (lifted from `mobile-shell.tsx`, keeping the horizontal-scrollable conflict guard via `data-no-swipe` and overflow-x detection).
+- On commit: animate strip to target index, then on `transitionend` call `navigate({ to: TAB_ORDER[next], replace: true })` — URL updates but no remount happens because all panels stay mounted.
+- On URL change from external sources (back button, link click): sync `activeIndex` and animate the strip to that index.
+- Renders `<BottomNav />` overlaid; bottom nav `<Link>` clicks call `setActiveIndex` first (instant slide) then update URL.
 
-Iframe/preview guard inside the component: if `window.self !== window.top` OR hostname includes `id-preview--` / `lovableproject.com`, return `null` without calling `useRegisterSW`. (Hook still called via early-return via `if` before; we'll structure as a tiny wrapper component so hook order is preserved.)
+### 3. Wire `TabsShell` at the root
+In `__root.tsx`'s `RootComponent`, switch between two render modes based on pathname:
+- If pathname matches a tab path exactly → render `<TabsShell />` (which ignores `<Outlet />` because all tab content is imported directly).
+- Otherwise → render `<Outlet />` as today.
 
-Pattern:
-```tsx
-export const PWAUpdatePrompt = () => {
-  if (!isPWAEligible()) return null;
-  return <PWAUpdatePromptInner />;
-};
-```
+This avoids creating a layout route (which would still cause unmounts when navigating to non-tab pages). The TabsShell instance persists across tab swipes because its position in the React tree is stable.
 
-### 3. `src/routes/__root.tsx` — mount the prompt
+### 4. Bottom nav integration
+- Update `BottomNav` to accept an optional `onTabChange(index)` callback. When inside `TabsShell`, taps trigger an immediate index change + animated slide rather than relying on router unmount/mount.
+- Outside the tabs shell (sub-routes), the existing `<Link>` behavior is preserved.
 
-Add `<PWAUpdatePrompt />` next to `<Toaster />` in `RootShell`.
+### 5. Scroll preservation
+Because tab DOM nodes are never unmounted, each panel's scroll position naturally persists. Disable router `scrollRestoration` for tab routes (or keep it — it won't fire because the tab DOM never re-renders).
 
-### 4. `package.json` — add dep
+### 6. Animation polish
+- During drag: `transition: none`, `transform` follows finger.
+- On release commit: `transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1)`.
+- On release snap-back: same easing back to current index.
+- Use `translate3d` for GPU layer.
+- Edge resistance preserved via existing `rubber()` helper.
 
-`bun add -d vite-plugin-pwa workbox-window`
-
-### 5. TypeScript module declaration
-
-Add `src/vite-env.d.ts` (or extend if exists) with:
-```ts
-/// <reference types="vite-plugin-pwa/react" />
-```
-
-## Verification
-
-- `bun install` succeeds, no type errors on `virtual:pwa-register/react`.
-- In editor preview: prompt never appears, no SW registers (verify in console: no "Service Worker registered" log, no `/sw.js` request).
-- Build output includes `dist/sw.js` and `dist/workbox-*.js`.
-- After publish + a follow-up deploy, the prompt appears on next visit.
+### 7. Preserve existing horizontal-scroll conflict guard
+Keep `isHorizontallyScrollable` walk + `data-no-swipe` opt-out exactly as-is.
 
 ## Out of scope
-
-- No changes to manifest, icons, or theme color.
-- No offline data sync, no background sync.
-- No push notifications.
+- Visual styling unchanged.
+- No removal of swipe.
+- No business-logic changes in tab pages — only their wrapping shell moves up one level.
+- Sub-routes (`/workout/log`, `/workout/complete`, `/auth`, `/ranks`) untouched.
