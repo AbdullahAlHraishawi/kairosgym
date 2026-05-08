@@ -1,6 +1,7 @@
-import { Outlet, createRootRoute, HeadContent, Scripts, Link } from "@tanstack/react-router";
+import { Outlet, createRootRoute, HeadContent, Scripts, Link, useLocation } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
+import { TabsShell, isTabPath } from "@/components/tabs-shell";
 
 import appCss from "../styles.css?url";
 
@@ -113,5 +114,14 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  const { pathname } = useLocation();
+  const onTabs = isTabPath(pathname);
+  return (
+    <>
+      {onTabs && <TabsShell />}
+      <div style={{ display: onTabs ? "none" : "contents" }}>
+        <Outlet />
+      </div>
+    </>
+  );
 }
