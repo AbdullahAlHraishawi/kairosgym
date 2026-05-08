@@ -1,5 +1,6 @@
 import { Outlet, createRootRoute, HeadContent, Scripts, Link } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 
 import appCss from "../styles.css?url";
 
@@ -97,6 +98,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
             },
           }}
         />
+        <PWAUpdatePrompt />
         <Scripts />
       </body>
     </html>

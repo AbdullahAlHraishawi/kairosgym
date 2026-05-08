@@ -5,5 +5,35 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig();
+export default defineConfig({
+  vite: {
+    plugins: [
+      VitePWA({
+        registerType: "autoUpdate",
+        injectRegister: false,
+        devOptions: { enabled: false },
+        manifest: false,
+        workbox: {
+          navigateFallbackDenylist: [/^\/api/, /^\/~oauth/],
+          runtimeCaching: [
+            {
+              urlPattern: ({ request }) => request.mode === "navigate",
+              handler: "NetworkFirst",
+              options: { cacheName: "html", networkTimeoutSeconds: 3 },
+            },
+            {
+              urlPattern: ({ request }) =>
+                ["style", "script", "worker", "image", "font"].includes(
+                  request.destination,
+                ),
+              handler: "StaleWhileRevalidate",
+              options: { cacheName: "assets" },
+            },
+          ],
+        },
+      }),
+    ],
+  },
+});
