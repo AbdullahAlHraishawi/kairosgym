@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { BottomNav } from "./bottom-nav";
-import { HomeContent } from "@/routes/index";
-import { WorkoutContent } from "@/routes/workout.index";
-import { ProgressContent } from "@/routes/progress";
-import { LeaderboardContent } from "@/routes/leaderboard";
-import { ProfileContent } from "@/routes/profile";
+import { HomeContent } from "@/components/tabs/home-content";
+import { WorkoutContent } from "@/components/tabs/workout-content";
+import { ProgressContent } from "@/components/tabs/progress-content";
+import { LeaderboardContent } from "@/components/tabs/leaderboard-content";
+import { ProfileContent } from "@/components/tabs/profile-content";
 
 const TAB_PATHS = ["/", "/workout", "/progress", "/leaderboard", "/profile"] as const;
 type TabPath = (typeof TAB_PATHS)[number];
