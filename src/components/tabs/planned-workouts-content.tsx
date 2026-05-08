@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { Plus, Calendar, Dumbbell, Pencil, Play, Loader2 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
-import { listPlans, type PlanSummary } from "@/lib/plans";
-import { openWorkoutFromPlanDay, getPlan, type PlanFull, dayDisplayName } from "@/lib/plans";
+import { listPlans, getPlan, dayDisplayName, type PlanSummary, type PlanFull } from "@/lib/plans";
+import { openWorkoutFromPlanDay } from "@/lib/workout";
 import {
   Sheet,
   SheetContent,
