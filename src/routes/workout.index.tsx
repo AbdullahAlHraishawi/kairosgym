@@ -12,7 +12,7 @@ export const Route = createFileRoute("/workout/")({
       { name: "description", content: "Pick exercises and log your training session." },
     ],
   }),
-  component: WorkoutPage,
+  component: WorkoutContent,
 });
 
 type Exercise = {
@@ -71,7 +71,7 @@ function matchesQuery(ex: Exercise, q: string) {
   return false;
 }
 
-function WorkoutPage() {
+export function WorkoutContent() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -242,4 +242,3 @@ function WorkoutPage() {
   );
 }
 
-export const WorkoutContent = WorkoutPage;

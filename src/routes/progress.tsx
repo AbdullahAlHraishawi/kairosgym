@@ -20,12 +20,12 @@ export const Route = createFileRoute("/progress")({
       { name: "description", content: "Your weekly XP, lifetime stats and trained muscles." },
     ],
   }),
-  component: ProgressPage,
+  component: ProgressContent,
 });
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function ProgressPage() {
+export function ProgressContent() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { profile } = useProfile(user?.id);
@@ -261,7 +261,6 @@ function ProgressPage() {
   );
 }
 
-export const ProgressContent = ProgressPage;
 
 
 function Tile({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
