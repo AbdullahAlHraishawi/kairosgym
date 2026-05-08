@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
+import { useLocation } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 
@@ -24,6 +25,8 @@ function isPWAEligible() {
 }
 
 export const PWAUpdatePrompt = () => {
+  const { pathname } = useLocation();
+  if (pathname !== "/") return null;
   if (!isPWAEligible()) return null;
   return <PWAUpdatePromptInner />;
 };
@@ -67,10 +70,10 @@ const PWAUpdatePromptInner = () => {
 
   if (swStuck) {
     return (
-      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-5 animate-in slide-in-from-bottom-4 fade-in duration-300">
-        <div className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border border-destructive/40 bg-card/80 px-4 py-3 shadow-glow backdrop-blur-xl backdrop-saturate-150">
+      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex justify-center px-5 animate-in slide-in-from-bottom-4 fade-in duration-300">
+        <div className="pointer-events-auto flex w-auto max-w-sm items-center justify-center gap-3 rounded-2xl border border-destructive/40 bg-card/80 px-4 py-3 shadow-glow backdrop-blur-xl backdrop-saturate-150">
           <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
-          <span className="flex-1 text-sm font-medium text-foreground">
+          <span className="text-sm font-medium text-foreground">
             Cache stuck — tap to fix
           </span>
           <Button size="sm" variant="destructive" onClick={handleClearCache}>
@@ -84,10 +87,10 @@ const PWAUpdatePromptInner = () => {
   if (!needRefresh) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-5 animate-in slide-in-from-bottom-4 fade-in duration-300">
-      <div className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border border-border/50 bg-card/80 px-4 py-3 shadow-glow backdrop-blur-xl backdrop-saturate-150">
+    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex justify-center px-5 animate-in slide-in-from-bottom-4 fade-in duration-300">
+      <div className="pointer-events-auto flex w-auto max-w-sm items-center justify-center gap-3 rounded-2xl border border-border/50 bg-card/80 px-4 py-3 shadow-glow backdrop-blur-xl backdrop-saturate-150">
         <RefreshCw className="h-4 w-4 shrink-0 text-primary" />
-        <span className="flex-1 text-sm font-medium text-foreground">
+        <span className="text-sm font-medium text-foreground">
           Update available
         </span>
         <Button
