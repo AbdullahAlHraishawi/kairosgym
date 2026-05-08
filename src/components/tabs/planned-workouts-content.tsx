@@ -189,22 +189,44 @@ export function PlannedWorkoutsContent() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               </div>
             )}
-            {startPlan?.days.map((d) => (
-              <button
-                key={d.id}
-                onClick={() => void launchDay(d.id)}
-                disabled={launching || d.exerciseCount === 0}
-                className="press bg-card flex w-full items-center justify-between gap-3 rounded-xl border border-border p-3 text-left disabled:opacity-40"
-              >
-                <div>
-                  <div className="text-sm font-bold">{dayDisplayName(d)}</div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {d.exerciseCount} {d.exerciseCount === 1 ? "exercise" : "exercises"}
+            {startPlan?.days.map((d) => {
+              const empty = d.exerciseCount === 0;
+              if (empty) {
+                return (
+                  <Link
+                    key={d.id}
+                    to="/workout/plans/$planId/day/$dayId"
+                    params={{ planId: startPlan.id, dayId: d.id }}
+                    onClick={() => setStartPlan(null)}
+                    className="press bg-card flex w-full items-center justify-between gap-3 rounded-xl border border-border p-3 text-left"
+                  >
+                    <div>
+                      <div className="text-sm font-bold">{dayDisplayName(d)}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Empty · tap to add exercises
+                      </div>
+                    </div>
+                    <Pencil className="h-4 w-4 text-primary" />
+                  </Link>
+                );
+              }
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => void launchDay(d.id)}
+                  disabled={launching}
+                  className="press bg-card flex w-full items-center justify-between gap-3 rounded-xl border border-border p-3 text-left disabled:opacity-40"
+                >
+                  <div>
+                    <div className="text-sm font-bold">{dayDisplayName(d)}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {d.exerciseCount} {d.exerciseCount === 1 ? "exercise" : "exercises"}
+                    </div>
                   </div>
-                </div>
-                <Play className="h-4 w-4 text-primary" />
-              </button>
-            ))}
+                  <Play className="h-4 w-4 text-primary" />
+                </button>
+              );
+            })}
           </div>
         </SheetContent>
       </Sheet>
