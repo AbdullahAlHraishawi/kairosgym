@@ -125,8 +125,7 @@ export async function deletePlan(planId: string) {
 }
 
 async function touchPlan(planId: string) {
-  await supabase.from("plans").update({ name: undefined as never }).eq("id", planId);
-  // Trigger handles updated_at on UPDATE; do a no-op update via name fetch:
+  // Trigger updates updated_at on any UPDATE; rewrite name to itself.
   const { data } = await supabase.from("plans").select("name").eq("id", planId).single();
   if (data) await supabase.from("plans").update({ name: data.name }).eq("id", planId);
 }
