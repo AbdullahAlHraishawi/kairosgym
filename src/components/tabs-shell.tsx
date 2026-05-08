@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { BottomNav } from "./bottom-nav";
 import { HomeContent } from "@/components/tabs/home-content";
-import { WorkoutContent } from "@/components/tabs/workout-content";
+import { WorkoutTabsPanel } from "@/components/tabs/workout-tabs-panel";
 import { ProgressContent } from "@/components/tabs/progress-content";
 import { LeaderboardContent } from "@/components/tabs/leaderboard-content";
 import { ProfileContent } from "@/components/tabs/profile-content";
@@ -54,7 +54,7 @@ const DIRECTION_THRESHOLD = 8;
 
 const PANELS = [
   { path: "/", render: () => <HomeContent /> },
-  { path: "/workout", render: () => <WorkoutContent /> },
+  { path: "/workout", render: () => <WorkoutTabsPanel /> },
   { path: "/progress", render: () => <ProgressContent /> },
   { path: "/leaderboard", render: () => <LeaderboardContent /> },
   { path: "/profile", render: () => <ProfileContent /> },
