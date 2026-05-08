@@ -17,6 +17,7 @@ import hero1 from "@/assets/hero-1.png";
 import hero2 from "@/assets/hero-2.png";
 import hero3 from "@/assets/hero-3.png";
 import krLogo from "@/assets/kr-logo.png";
+import { CharacterPicker } from "@/components/character-picker";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
