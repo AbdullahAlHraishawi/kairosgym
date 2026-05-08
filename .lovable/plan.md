@@ -1,27 +1,66 @@
-## Problem
+## What is wrong
 
-Tapping a day "does nothing" because of the Start flow on plans with empty days:
+The plan editor does have a day editor route, but the current UX makes it feel like nothing changed:
 
-- On the Planned tab, each plan card has two CTAs: a primary `Start` button and a secondary `Edit` button.
-- Tapping `Start` opens a bottom sheet listing the plan's days.
-- Each day in that sheet is rendered as a `<button>` that is **`disabled` whenever `exerciseCount === 0`**.
-- A freshly created plan has all empty days, so every day in the sheet is unresponsive — exactly the "nothing happens" symptom.
+- New plans correctly create empty days, but there is no strong inline exercise setup flow on the plan screen.
+- Tapping a day depends on route navigation, and if that route does not visibly present the picker or is blocked by the day menu overlay, the user sees no practical way to add exercises.
+- Empty days are expected after plan creation, but they should immediately invite exercise selection, not feel like a broken state.
 
-The day rows inside the actual plan editor (`/workout/plans/$planId`) already work correctly as `<Link>`s to the day editor. The bug is only in the Start sheet UX, which doesn't give users a way to reach the day editor from there.
+## Fix plan
 
-## Fix
+1. Make each day row in the plan editor directly actionable
+   - Keep the existing premium KAIROS design.
+   - Make the whole day card clearly open exercise setup.
+   - Add an explicit inline CTA for empty days: `Add exercises`.
+   - Keep the three-dot day menu working separately for Rename, Duplicate, Delete.
 
-In `src/components/tabs/planned-workouts-content.tsx`, make the Start sheet handle empty days gracefully instead of silently disabling them:
+2. Add an exercise picker directly inside the plan editor flow
+   - When tapping an empty day, open a bottom sheet or focused setup panel for that day instead of leaving the user guessing.
+   - The sheet will list exercises with search and muscle filters, matching the existing Quick Workout exercise selection style.
+   - Tapping an exercise adds it to that day with default sets.
+   - Added exercises immediately appear under that day without a page reload.
 
-1. Keep days with exercises as "Start" buttons (current behavior, launches the session).
-2. For days with `exerciseCount === 0`, render the row as a `<Link>` to `/workout/plans/$planId/day/$dayId` with a clear "Add exercises" label and a pencil icon (instead of a disabled play button). Tapping navigates to the day editor and closes the sheet.
-3. Drop the blanket `disabled` state so every day row is always actionable.
+3. Keep the existing full day editor route as the advanced editor
+   - The `/workout/plans/$planId/day/$dayId` page remains available for editing sets, reps, weight, reordering, copying from other days, and removing exercises.
+   - After exercises are added from the quick sheet, the user can still tap into the full editor for detailed set work.
 
-Optional small polish (same file, no design change):
-- When the user has a plan but it has zero exercises across all days, change the primary CTA on the plan card from `Start` to `Set up` that links straight to the plan editor — this prevents the dead-end Start sheet for brand-new plans.
+4. Refresh plan state after mutations
+   - After adding/removing exercises, update the local plan state so the day count changes from `0 exercises` to the real count immediately.
+   - Ensure newly created plans show empty days as expected, but with a clear way to fill them.
 
-No DB or business-logic changes. No changes to the Quick Workout flow, the plan editor, or the day editor.
+5. Do not change unrelated systems
+   - No redesign.
+   - No Quick Workout changes.
+   - No database schema changes unless a runtime issue proves the existing tables/policies are blocking inserts.
+   - Keep mobile-first, cinematic, clean, premium styling.
 
-## Files touched
+## Technical details
 
-- `src/components/tabs/planned-workouts-content.tsx` — update Start-sheet day rows + (optional) plan-card CTA logic for empty plans.
+Files to update:
+
+- `src/routes/workout.plans.$planId.tsx`
+  - Add plan-editor exercise setup state.
+  - Load available exercises from Supabase.
+  - Add search/filter UI in a bottom sheet.
+  - Call existing `addPlanExercise(dayId, exerciseId)` from `src/lib/plans.ts`.
+  - Refresh the plan after adding exercises.
+
+- `src/lib/plans.ts`
+  - Reuse existing helpers where possible.
+  - Only adjust if needed for better return data or safe refresh behavior.
+
+- `src/components/tabs/planned-workouts-content.tsx`
+  - Keep current Quick/Planned integration.
+  - Only adjust if the plan card needs a clearer `Set up` path after the editor improvement.
+
+Expected result:
+
+```text
+Create plan
+  -> Plan opens with Day 1, Day 2, Day 3
+  -> Tap Day 1 / Add exercises
+  -> Exercise picker opens immediately
+  -> Tap Bench Press
+  -> Day 1 now shows 1 exercise
+  -> Open full day editor to edit sets/reps/weight
+```
