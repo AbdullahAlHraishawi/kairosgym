@@ -161,6 +161,74 @@ export async function openWorkout(exerciseIds: string[]): Promise<DraftWorkout> 
   return buildDraft(workout.id, workout.started_at);
 }
 
+/** Creates a new draft workout from a saved plan day, pre-filled with planned sets. */
+export async function openWorkoutFromPlanDay(dayId: string): Promise<DraftWorkout> {
+  const userId = await requireUserId();
+  const startedAt = new Date().toISOString();
+
+  const { data: planExs } = await supabase
+    .from("plan_exercises")
+    .select("id, exercise_id, order_idx")
+    .eq("day_id", dayId)
+    .order("order_idx");
+  const peList = planExs ?? [];
+
+  const peIds = peList.map((p) => p.id);
+  const setsByPe = new Map<string, { set_idx: number; weight: number; reps: number }[]>();
+  if (peIds.length) {
+    const { data: sets } = await supabase
+      .from("plan_sets")
+      .select("plan_exercise_id, set_idx, weight, reps")
+      .in("plan_exercise_id", peIds)
+      .order("set_idx");
+    (sets ?? []).forEach((s) => {
+      const arr = setsByPe.get(s.plan_exercise_id) ?? [];
+      arr.push({ set_idx: s.set_idx, weight: Number(s.weight ?? 0), reps: s.reps ?? 0 });
+      setsByPe.set(s.plan_exercise_id, arr);
+    });
+  }
+
+  const { data: workout, error: wErr } = await supabase
+    .from("workouts")
+    .insert({ user_id: userId, started_at: startedAt, xp_earned: 0 })
+    .select("id, started_at")
+    .single();
+  if (wErr || !workout) throw wErr ?? new Error("Failed to create workout");
+
+  if (peList.length) {
+    const exRows = peList.map((p, i) => ({
+      workout_id: workout.id,
+      exercise_id: p.exercise_id,
+      order_idx: i,
+    }));
+    const { data: inserted, error: weErr } = await supabase
+      .from("workout_exercises")
+      .insert(exRows)
+      .select("id, order_idx");
+    if (weErr || !inserted) throw weErr ?? new Error("Failed to add exercises");
+
+    const setRows = inserted.flatMap((we, i) => {
+      const planned = setsByPe.get(peList[i].id) ?? [];
+      const seedSets = planned.length
+        ? planned
+        : [1, 2, 3].map((idx) => ({ set_idx: idx, weight: 0, reps: 0 }));
+      return seedSets.map((s) => ({
+        workout_exercise_id: we.id,
+        set_idx: s.set_idx,
+        weight: s.weight,
+        reps: s.reps,
+        completed: false,
+      }));
+    });
+    if (setRows.length) {
+      const { error: sErr } = await supabase.from("workout_sets").insert(setRows);
+      if (sErr) throw sErr;
+    }
+  }
+
+  return buildDraft(workout.id, workout.started_at);
+}
+
 export async function updateDraftSet(
   setId: string,
   patch: Partial<{ weight: number; reps: number; done: boolean }>,
