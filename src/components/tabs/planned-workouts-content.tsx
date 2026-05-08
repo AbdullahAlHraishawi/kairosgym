@@ -128,13 +128,23 @@ export function PlannedWorkoutsContent() {
                     </span>
                   </div>
                   <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={() => void openStartSheet(p.id)}
-                      disabled={p.dayCount === 0}
-                      className="press bg-primary text-primary-foreground shadow-glow flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-[11px] font-black uppercase tracking-[0.2em] disabled:opacity-40"
-                    >
-                      <Play className="h-3.5 w-3.5" /> Start
-                    </button>
+                    {p.exerciseCount === 0 ? (
+                      <Link
+                        to="/workout/plans/$planId"
+                        params={{ planId: p.id }}
+                        className="press bg-primary text-primary-foreground shadow-glow flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-[11px] font-black uppercase tracking-[0.2em]"
+                      >
+                        <Settings2 className="h-3.5 w-3.5" /> Set up
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => void openStartSheet(p.id)}
+                        disabled={p.dayCount === 0}
+                        className="press bg-primary text-primary-foreground shadow-glow flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-[11px] font-black uppercase tracking-[0.2em] disabled:opacity-40"
+                      >
+                        <Play className="h-3.5 w-3.5" /> Start
+                      </button>
+                    )}
                     <Link
                       to="/workout/plans/$planId"
                       params={{ planId: p.id }}
