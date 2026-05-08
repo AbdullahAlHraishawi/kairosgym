@@ -115,16 +115,5 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { pathname } = useLocation();
-  const onTabs = isTabPath(pathname);
-  // Always render TabsShell so tab content stays mounted across tab swipes.
-  // Hide it (visually) when on a non-tab route, but keep it mounted for instant
-  // return. Render Outlet on top for non-tab routes.
-  return (
-    <>
-      <div style={{ display: onTabs ? "contents" : "none" }}>
-        <TabsShell />
-      </div>
-      {!onTabs && <Outlet />}
-    </>
-  );
+  return isTabPath(pathname) ? <TabsShell /> : <Outlet />;
 }
