@@ -128,7 +128,7 @@ function CompletePage() {
         xp: workout.xp_earned ?? 0,
       });
     })();
-  }, [id, user, navigate]);
+  }, [id, user, loading, navigate]);
 
   // XP count-up
   useEffect(() => {
