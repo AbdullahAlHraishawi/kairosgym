@@ -11,6 +11,7 @@ export type Profile = {
   streak: number;
   last_workout_date: string | null;
   weight_kg: number | null;
+  character_key: string | null;
 };
 
 export function useProfile(userId: string | null | undefined) {

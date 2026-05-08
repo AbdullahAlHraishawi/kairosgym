@@ -13,7 +13,9 @@ import {
   Scale,
 } from "lucide-react";
 
-import { Avatar } from "@/components/avatar";
+import { CharacterAvatar } from "@/components/character-avatar";
+import { CharacterBanner } from "@/components/character-banner";
+import { CharacterPicker } from "@/components/character-picker";
 import { XpBar } from "@/components/xp-bar";
 import { AtmoCard } from "@/components/atmo-card";
 import { BadgeEmblem } from "@/components/badge-emblem";
@@ -27,9 +29,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress, titleForLevel } from "@/lib/xp";
+import { getCharacter } from "@/lib/characters";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import atmoBlade from "@/assets/atmo-blade.png";
 import atmoWarrior from "@/assets/atmo-warrior.png";
 
 export function ProfileContent() {
@@ -112,21 +114,43 @@ export function ProfileContent() {
 
   const lp = levelProgress(profile.total_xp);
 
+  const character = getCharacter(profile.character_key);
+
   return (
     <>
-      <AtmoCard
-        image={atmoBlade}
-        imageOpacity={0.12}
-        className="p-6"
-      >
-        <div className="animate-fade-up flex flex-col items-center text-center">
-          <Avatar seed={profile.avatar_seed} size={96} className="ring-4 ring-primary/40 shadow-glow" />
-          <div className="text-display mt-3 text-2xl font-black">{profile.username}</div>
-          <div className="text-primary text-xs font-bold uppercase tracking-[0.3em]">
-            The {titleForLevel(lp.level)}
-          </div>
+      <section className="animate-fade-up -mx-5 -mt-2 relative">
+        <CharacterBanner character={character} className="rounded-t-none rounded-b-2xl" showChooseCta={false} />
+      </section>
+      <div className="-mt-12 flex flex-col items-center text-center relative z-10">
+        <CharacterAvatar
+          character={character}
+          fallbackSeed={profile.avatar_seed}
+          size={104}
+          className="ring-4 ring-background"
+        />
+        <div className="text-display mt-3 text-2xl font-black">{profile.username}</div>
+        <div className="text-primary text-xs font-bold uppercase tracking-[0.3em]">
+          The {titleForLevel(lp.level)}
         </div>
-      </AtmoCard>
+      </div>
+
+      <section className="animate-fade-up mt-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase tracking-wider">Your warrior</h2>
+          {character && (
+            <span className="text-[11px] text-muted-foreground text-display">
+              {character.name}
+            </span>
+          )}
+        </div>
+        {user && (
+          <CharacterPicker
+            userId={user.id}
+            currentKey={profile.character_key}
+            onSaved={() => void refresh()}
+          />
+        )}
+      </section>
 
       <AtmoCard
         variant="cinematic"

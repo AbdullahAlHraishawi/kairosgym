@@ -17,6 +17,7 @@ import hero1 from "@/assets/hero-1.png";
 import hero2 from "@/assets/hero-2.png";
 import hero3 from "@/assets/hero-3.png";
 import krLogo from "@/assets/kr-logo.png";
+import { CharacterPicker } from "@/components/character-picker";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -65,18 +66,19 @@ function HeroCarousel() {
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "choose-character">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [newUserId, setNewUserId] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -85,7 +87,12 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Account created. Welcome to KAIROS.");
+        toast.success("Account created. Choose your warrior.");
+        if (data.user) {
+          setNewUserId(data.user.id);
+          setMode("choose-character");
+          return;
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -153,13 +160,30 @@ function AuthPage() {
           style={{ backgroundColor: "rgba(26, 29, 35, 0.82)" }}
         >
           <h2 className="text-center text-xl font-bold uppercase tracking-[0.18em] text-foreground">
-            {mode === "signin" ? "Welcome Back" : "Join Kairos"}
+            {mode === "signin"
+              ? "Welcome Back"
+              : mode === "signup"
+                ? "Join Kairos"
+                : "Choose Your Warrior"}
           </h2>
           <p className="text-muted-foreground mt-1.5 text-center text-sm">
             {mode === "signin"
               ? "Sign in to continue your journey."
-              : "Create your account to begin."}
+              : mode === "signup"
+                ? "Create your account to begin."
+                : "Pick the face of your journey. You can change this later."}
           </p>
+
+          {mode === "choose-character" && newUserId ? (
+            <div className="mt-5">
+              <CharacterPicker
+                userId={newUserId}
+                currentKey={null}
+                variant="onboarding"
+                onContinue={() => navigate({ to: "/" })}
+              />
+            </div>
+          ) : (
 
           <form onSubmit={submit} className="mt-5 space-y-4">
             {/* Email */}
@@ -251,6 +275,7 @@ function AuthPage() {
               <span>{mode === "signin" ? "Create Account" : "Back to Sign In"}</span>
             </button>
           </form>
+          )}
         </div>
 
         {/* Footer brand strip */}
