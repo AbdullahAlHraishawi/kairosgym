@@ -13,7 +13,6 @@ import {
   Scale,
 } from "lucide-react";
 
-import { Avatar } from "@/components/avatar";
 import { CharacterAvatar } from "@/components/character-avatar";
 import { CharacterBanner } from "@/components/character-banner";
 import { CharacterPicker } from "@/components/character-picker";
@@ -33,7 +32,6 @@ import { levelProgress, titleForLevel } from "@/lib/xp";
 import { getCharacter } from "@/lib/characters";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import atmoBlade from "@/assets/atmo-blade.png";
 import atmoWarrior from "@/assets/atmo-warrior.png";
 
 export function ProfileContent() {
