@@ -1,83 +1,78 @@
-## Goal
 
-Massively expand the KAIROS exercise library and make search/filtering smarter, without changing the visual design of `/workout`. Existing card layout, hero, sticky CTA, colors, and spacing stay exactly as they are.
+# Refine Swipe Navigation
 
-## 1. Database schema changes (migration)
+Make swipe between tabs feel native and stop fighting horizontal scrollers (filter chips, carousels).
 
-Extend the `exercises` table with structured fields:
+## What changes
 
-- `secondary_muscles text[]` — e.g. `{Triceps, Shoulders}` (default `{}`)
-- `difficulty text` — `Beginner | Intermediate | Advanced` (default `Beginner`)
-- `exercise_type text` — `Compound | Isolation | Cardio` (default `Compound`)
-- `aliases text[]` — short forms like `{rdl, romanian deadlift}` (default `{}`)
-- `slug text unique` — stable id like `bench-press` for idempotent upserts
+Only `src/components/mobile-shell.tsx`. No other file touched. No visual redesign.
 
-Also widen `muscle_group` allowed values (no enum currently — just text, so no constraint change needed) to include: `Chest, Back, Legs, Shoulders, Arms, Core, Glutes, Forearms, Calves, Full Body, Cardio`.
+### 1. Smart gesture detection
 
-Add indexes for performant search/filter:
+On `touchstart`, walk up from `e.target` to the shell root and check each ancestor with `Element.scrollWidth > clientWidth` AND a computed `overflow-x` of `auto` / `scroll`. If found → mark gesture as "scroll-owned" and never start a tab swipe.
 
-- `CREATE INDEX exercises_muscle_group_idx ON exercises(muscle_group);`
-- `CREATE INDEX exercises_equipment_idx ON exercises(equipment);`
-- `CREATE INDEX exercises_exercise_type_idx ON exercises(exercise_type);`
-- `CREATE INDEX exercises_name_trgm_idx ON exercises USING gin (name gin_trgm_ops);` (enable `pg_trgm` extension)
-- `CREATE INDEX exercises_aliases_gin_idx ON exercises USING gin (aliases);`
+Also opt out via a `data-no-swipe` attribute, which we can apply to anything custom later (charts, sliders) without code changes here. The chip rows in `workout.index.tsx` already use horizontal overflow, so they'll be auto-detected — no edits needed there.
 
-RLS unchanged (already public-read).
+### 2. Direction lock
 
-## 2. Seed the library (data insert)
+First 8–10px of movement decides intent:
+- |dx| > |dy| AND |dx| > 8 → horizontal gesture, take it
+- |dy| > |dx| → vertical scroll, release for the rest of the touch
+- else keep sampling
 
-Bulk `INSERT ... ON CONFLICT (slug) DO UPDATE` ~150–180 real exercises. Existing 19 rows get upgraded in place via the slug match; everything else is added. No duplicates, no fictional moves.
+Once direction is locked horizontal, call `e.preventDefault()` on `touchmove` (listener registered with `{ passive: false }` via `useEffect` + `ref`, since React's synthetic touch handlers are passive) so the browser doesn't also try to scroll.
 
-Coverage breakdown (target counts, ±a few):
+### 3. Finger-following transform
 
-```text
-Chest        20   barbell, dumbbell, machine, cable, smith, bodyweight, incline/decline variants
-Back         22   rows, pulldowns, pull-ups, deadlift family, shrugs (trap), rear delt
-Shoulders    16   OHP, presses, raises (lat/front/rear), upright row, face pull, cable variants
-Arms         22   biceps + triceps: barbell, EZ, dumbbell, cable, machine, bodyweight
-Legs         24   squat family, leg press, hack squat, lunges, leg ext/curl, hip thrust intro
-Glutes       10   hip thrust, glute bridge, cable kickback, abduction machine, Bulgarian split
-Core/Abs     14   plank, crunch, leg raise, cable crunch, ab wheel, hanging knee raise
-Forearms      6   wrist curl variants, reverse curl, farmer carry
-Calves        6   standing/seated calf raise, smith, leg press calf
-Full Body     6   clean, snatch, thruster, burpee, kettlebell swing, turkish get-up
-Cardio        8   treadmill, bike, rower, elliptical, stairmaster, jump rope, sled push, assault bike
-```
+Replace the current "detect end → navigate" model with a live drag:
+- Track `dragX` in a `ref` + apply via `element.style.transform = translate3d(...)` directly (no React re-renders during drag → 60fps).
+- The `<main>` container translates with the finger.
+- At edges (first tab swiping right, last tab swiping left), apply rubber-band: `displayed = sign * sqrt(|dx|) * k` so it resists but still moves a little.
 
-Each row stores: `slug, name, muscle_group, equipment, secondary_muscles, difficulty, exercise_type, aliases`. Aliases include common shortcuts: `rdl, ohp, bb row, db curl, lat pull, tri pushdown, skullcrusher, hip thrust, kb swing, bss (bulgarian split squat)`, etc.
+### 4. Velocity + threshold completion
 
-## 3. Frontend types + data layer (`/workout` only)
+On `touchend`, decide commit vs. cancel:
+- Commit if `|dx| > width * 0.25` OR `|velocity| > 0.5 px/ms` (sampled over last ~80ms).
+- Else snap back to 0.
 
-Update local `Exercise` type in `src/routes/workout.index.tsx` to include the new optional fields. Supabase types regenerate automatically — no edit to `types.ts`.
+Animate to target with a CSS transition (`transform 260ms cubic-bezier(0.22, 1, 0.36, 1)`), then on `transitionend` call `navigate({ to: TAB_ORDER[next] })` and reset transform to 0 (the new page mounts at rest position).
 
-Search/filter logic upgrades (pure logic; UI markup unchanged):
+For the snap-back case, same easing, no navigation.
 
-- **Search** — match if the lowercased query is a substring of `name`, any `aliases` entry, or `muscle_group`. Also match initials (first letter of each word in `name`) against the query so `bp` → `Bench Press`, `rdl` → `Romanian Deadlift` even without an alias row.
-- **Filtering** — replace single `filter` state with two stacking filter groups:
-  - Muscle: `All, Chest, Back, Legs, Shoulders, Arms, Core, Glutes` (Forearms/Calves/Full Body/Cardio reachable via "More" chip overflow — same chip style, just a longer scrollable row, which the existing `overflow-x-auto` already supports)
-  - Equipment: `All, Barbell, Dumbbell, Cable, Machine, Bodyweight, Smith, Kettlebell` (second horizontal chip row directly below the muscle row, using identical chip styling)
-  - Both rows AND together. Default `All / All`.
-- All filtering/search runs client-side over the in-memory list — already fast for ~180 rows. Wrap the filter in `useMemo` (already there) and debounce the query input by 120ms via a tiny inline `useDeferredValue` to keep typing smooth.
+### 5. Bottom nav untouched
 
-## 4. Card content (no visual redesign)
+`BottomNav` keeps working as-is — taps bypass the touch handler entirely. Both coexist.
 
-The existing card already shows `name` and `muscle_group · equipment` in the same line. Keep that exactly. No new badges, no extra rows, no color changes — the brief explicitly forbids redesign and the current tag line already satisfies "primary muscle • equipment".
+### 6. Edge cases
 
-## 5. Out of scope (explicit)
-
-- No changes to `/progress`, `/workout/log`, builder layout, bottom nav, swipe nav.
-- No new routes, no detail page, no images per exercise.
-- No changes to XP, calories, achievements.
-- No edits to `src/integrations/supabase/types.ts` (auto-generated).
-
-## 6. Verification
-
-- `supabase--read_query` after migration: `SELECT muscle_group, COUNT(*) FROM exercises GROUP BY 1 ORDER BY 1;` confirms coverage matches the table above.
-- Manual checks against the brief's examples: "bench" → Bench Press + Incline + Smith Bench; "lat" → Lat Pulldown; "rdl" → Romanian Deadlift; "tri" → Triceps Pushdown.
-- Stack filters: Chest + Dumbbell shows only DB chest moves; Legs + Machine shows leg press, hack squat, leg ext, leg curl.
-- Confirm `/workout` page renders unchanged visually (same hero, same chips, same cards, same sticky CTA).
+- Multi-touch (`touches.length > 1`) → cancel gesture.
+- Touch cancelled by system → snap back.
+- Route change during animation → clear pending transitions.
 
 ## Technical notes
 
-- Migration order: `CREATE EXTENSION IF NOT EXISTS pg_trgm;` → `ALTER TABLE` adds columns → backfill `slug` for existing 19 rows from `lower(replace(name,' ','-'))` → add unique constraint on `slug` → create indexes.
-- Seed runs as one large `INSERT ... ON CONFLICT (slug) DO UPDATE SET ...` so re-running is safe and existing rows get the new metadata without breaking foreign keys from `workout_exercises`.
+```text
+touchstart
+  ├─ inside [data-no-swipe] or horizontally-scrollable ancestor? → ignore
+  └─ record startX, startY, startTime
+
+touchmove (first 10px)
+  ├─ |dy| dominates → release (vertical scroll wins)
+  └─ |dx| dominates → lock horizontal, preventDefault from now on
+
+touchmove (locked)
+  ├─ at edge → rubber-band displacement
+  └─ else → translate main by dx (live, via ref.style.transform)
+
+touchend
+  ├─ |dx| > 25% width OR |v| > 0.5 px/ms → animate to ±width, then navigate
+  └─ else → animate back to 0
+```
+
+No new dependencies. Framer Motion not needed — direct DOM transform + one CSS transition is lighter and avoids re-renders.
+
+## Out of scope
+
+- No cross-fade / parallax of the incoming page (would need shared layout — out of scope; current single-page mount stays).
+- No changes to routes, filters, or any UI.
+- No changes to `bottom-nav.tsx`.
