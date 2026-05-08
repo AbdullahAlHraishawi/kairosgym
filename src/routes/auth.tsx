@@ -159,13 +159,30 @@ function AuthPage() {
           style={{ backgroundColor: "rgba(26, 29, 35, 0.82)" }}
         >
           <h2 className="text-center text-xl font-bold uppercase tracking-[0.18em] text-foreground">
-            {mode === "signin" ? "Welcome Back" : "Join Kairos"}
+            {mode === "signin"
+              ? "Welcome Back"
+              : mode === "signup"
+                ? "Join Kairos"
+                : "Choose Your Warrior"}
           </h2>
           <p className="text-muted-foreground mt-1.5 text-center text-sm">
             {mode === "signin"
               ? "Sign in to continue your journey."
-              : "Create your account to begin."}
+              : mode === "signup"
+                ? "Create your account to begin."
+                : "Pick the face of your journey. You can change this later."}
           </p>
+
+          {mode === "choose-character" && newUserId ? (
+            <div className="mt-5">
+              <CharacterPicker
+                userId={newUserId}
+                currentKey={null}
+                variant="onboarding"
+                onContinue={() => navigate({ to: "/" })}
+              />
+            </div>
+          ) : (
 
           <form onSubmit={submit} className="mt-5 space-y-4">
             {/* Email */}
