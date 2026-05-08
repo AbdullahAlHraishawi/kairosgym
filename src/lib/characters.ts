@@ -6,6 +6,10 @@ import kaiAvatar from "@/assets/characters/kai/avatar.png";
 import kaiBanner1 from "@/assets/characters/kai/banner1.png";
 import kaiBanner2 from "@/assets/characters/kai/banner2.png";
 import kaiBanner3 from "@/assets/characters/kai/banner3.png";
+import renAvatar from "@/assets/characters/ren/avatar.png";
+import renBanner1 from "@/assets/characters/ren/banner1.png";
+import renBanner2 from "@/assets/characters/ren/banner2.png";
+import renBanner3 from "@/assets/characters/ren/banner3.png";
 
 export type CharacterKey = "ryuji" | "kai" | "ren";
 
@@ -39,9 +43,9 @@ export const CHARACTERS: Record<CharacterKey, Character> = {
     key: "ren",
     name: "Ren",
     tagline: "Relentless / Rebel",
-    avatar: null,
-    banners: [],
-    available: false,
+    avatar: renAvatar,
+    banners: [renBanner1, renBanner2, renBanner3],
+    available: true,
   },
 };
 
