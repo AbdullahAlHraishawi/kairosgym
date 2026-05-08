@@ -60,10 +60,14 @@ function LogPage() {
   const { profile } = useProfile(user?.id);
   const [entries, setEntries] = useState<EntryState[]>([]);
   const [loadingSession, setLoadingSession] = useState(true);
-  // Show splash immediately if we're starting a brand-new session (picks queued)
+  // Show splash immediately if we're starting a brand-new session
+  // (either Quick picks queued OR a planned launch).
   const [intro, setIntro] = useState(() => {
     if (typeof window === "undefined") return false;
-    return !!window.sessionStorage.getItem("kairos_picked");
+    return (
+      !!window.sessionStorage.getItem("kairos_picked") ||
+      !!window.sessionStorage.getItem("kairos_planned_launch")
+    );
   });
   const introTimerDoneRef = useRef(false);
   const sessionReadyRef = useRef(false);
