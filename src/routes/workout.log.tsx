@@ -60,7 +60,13 @@ function LogPage() {
   const { profile } = useProfile(user?.id);
   const [entries, setEntries] = useState<EntryState[]>([]);
   const [loadingSession, setLoadingSession] = useState(true);
-  const [intro, setIntro] = useState(false);
+  // Show splash immediately if we're starting a brand-new session (picks queued)
+  const [intro, setIntro] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !!window.sessionStorage.getItem("kairos_picked");
+  });
+  const introTimerDoneRef = useRef(false);
+  const sessionReadyRef = useRef(false);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const subtitle = useMemo(
