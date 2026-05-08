@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { onProfileChanged } from "@/lib/profile-bus";
 
 export type Profile = {
   id: string;
@@ -36,6 +37,12 @@ export function useProfile(userId: string | null | undefined) {
 
   useEffect(() => {
     void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    return onProfileChanged(() => {
+      void refresh();
+    });
   }, [refresh]);
 
   return { profile, loading, refresh };

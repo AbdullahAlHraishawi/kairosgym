@@ -1,6 +1,5 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
-import { useLocation } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 
@@ -25,8 +24,6 @@ function isPWAEligible() {
 }
 
 export const PWAUpdatePrompt = () => {
-  const { pathname } = useLocation();
-  if (pathname !== "/") return null;
   if (!isPWAEligible()) return null;
   return <PWAUpdatePromptInner />;
 };
@@ -34,6 +31,7 @@ export const PWAUpdatePrompt = () => {
 const PWAUpdatePromptInner = () => {
   const [swStuck, setSwStuck] = useState(false);
   const failCount = useRef(0);
+  const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
   const handleClearCache = useCallback(async () => {
     try {
@@ -51,22 +49,47 @@ const PWAUpdatePromptInner = () => {
     needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW({
+    immediate: true,
     onRegisteredSW(_swUrl, registration) {
-      if (registration) {
-        setInterval(async () => {
-          try {
-            await registration.update();
-            failCount.current = 0;
-          } catch {
-            failCount.current += 1;
-            if (failCount.current >= 3) {
-              setSwStuck(true);
-            }
-          }
-        }, 60 * 1000);
-      }
+      if (!registration) return;
+      registrationRef.current = registration;
+      // Periodic background check
+      setInterval(async () => {
+        try {
+          await registration.update();
+          failCount.current = 0;
+        } catch {
+          failCount.current += 1;
+          if (failCount.current >= 3) setSwStuck(true);
+        }
+      }, 60 * 1000);
+    },
+    onRegisterError() {
+      failCount.current += 1;
     },
   });
+
+  // Check for updates whenever the tab becomes visible or window regains focus.
+  useEffect(() => {
+    const check = async () => {
+      const reg = registrationRef.current;
+      if (!reg) return;
+      try {
+        await reg.update();
+      } catch {
+        // ignore transient failures
+      }
+    };
+    const onVisibility = () => {
+      if (!document.hidden) void check();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", check);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", check);
+    };
+  }, []);
 
   if (swStuck) {
     return (

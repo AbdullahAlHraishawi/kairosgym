@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { CHARACTER_LIST, getCharacter, type Character, type CharacterKey } from "@/lib/characters";
 import { CharacterBanner } from "@/components/character-banner";
 import { supabase } from "@/integrations/supabase/client";
+import { emitProfileChanged } from "@/lib/profile-bus";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -42,6 +43,7 @@ export function CharacterPicker({
       return false;
     }
     onSaved?.(key);
+    emitProfileChanged();
     return true;
   };
 
@@ -94,6 +96,11 @@ export function CharacterPicker({
                 locked && "opacity-60 cursor-not-allowed",
               )}
             >
+              {isSelected && (
+                <div className="bg-primary text-primary-foreground absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full ring-2 ring-background shadow-glow">
+                  <Check className="h-3.5 w-3.5" />
+                </div>
+              )}
               <div
                 className="relative h-16 w-16 overflow-hidden rounded-full bg-background"
                 style={{
@@ -112,11 +119,6 @@ export function CharacterPicker({
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-secondary text-muted-foreground">
                     <Lock className="h-5 w-5" />
-                  </div>
-                )}
-                {isSelected && (
-                  <div className="bg-primary text-primary-foreground absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full ring-2 ring-background">
-                    <Check className="h-3.5 w-3.5" />
                   </div>
                 )}
               </div>
