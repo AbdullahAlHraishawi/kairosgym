@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkoutIndexRouteImport } from './routes/workout.index'
 import { Route as WorkoutLogRouteImport } from './routes/workout.log'
 import { Route as WorkoutCompleteRouteImport } from './routes/workout.complete'
+import { Route as WorkoutPlansNewRouteImport } from './routes/workout.plans.new'
 
 const RanksRoute = RanksRouteImport.update({
   id: '/ranks',
@@ -64,6 +65,11 @@ const WorkoutCompleteRoute = WorkoutCompleteRouteImport.update({
   path: '/workout/complete',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkoutPlansNewRoute = WorkoutPlansNewRouteImport.update({
+  id: '/workout/plans/new',
+  path: '/workout/plans/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/workout/complete': typeof WorkoutCompleteRoute
   '/workout/log': typeof WorkoutLogRoute
   '/workout/': typeof WorkoutIndexRoute
+  '/workout/plans/new': typeof WorkoutPlansNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/workout/complete': typeof WorkoutCompleteRoute
   '/workout/log': typeof WorkoutLogRoute
   '/workout': typeof WorkoutIndexRoute
+  '/workout/plans/new': typeof WorkoutPlansNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/workout/complete': typeof WorkoutCompleteRoute
   '/workout/log': typeof WorkoutLogRoute
   '/workout/': typeof WorkoutIndexRoute
+  '/workout/plans/new': typeof WorkoutPlansNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/workout/complete'
     | '/workout/log'
     | '/workout/'
+    | '/workout/plans/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/workout/complete'
     | '/workout/log'
     | '/workout'
+    | '/workout/plans/new'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/workout/complete'
     | '/workout/log'
     | '/workout/'
+    | '/workout/plans/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +157,7 @@ export interface RootRouteChildren {
   WorkoutCompleteRoute: typeof WorkoutCompleteRoute
   WorkoutLogRoute: typeof WorkoutLogRoute
   WorkoutIndexRoute: typeof WorkoutIndexRoute
+  WorkoutPlansNewRoute: typeof WorkoutPlansNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkoutCompleteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workout/plans/new': {
+      id: '/workout/plans/new'
+      path: '/workout/plans/new'
+      fullPath: '/workout/plans/new'
+      preLoaderRoute: typeof WorkoutPlansNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,7 +245,17 @@ const rootRouteChildren: RootRouteChildren = {
   WorkoutCompleteRoute: WorkoutCompleteRoute,
   WorkoutLogRoute: WorkoutLogRoute,
   WorkoutIndexRoute: WorkoutIndexRoute,
+  WorkoutPlansNewRoute: WorkoutPlansNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
