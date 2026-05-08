@@ -257,9 +257,12 @@ function ProgressPage() {
       {profile?.weight_kg && (
         <p className="mt-2 text-[10px] italic text-muted-foreground">{CAL_DISCLAIMER}</p>
       )}
-    </MobileShell>
+    </>
   );
 }
+
+export const ProgressContent = ProgressPage;
+
 
 function Tile({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
