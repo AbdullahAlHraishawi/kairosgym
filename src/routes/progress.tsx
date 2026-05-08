@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { TrendingUp, TrendingDown, Clock, Trophy, Flame, Dumbbell } from "lucide-react";
-import { MobileShell } from "@/components/mobile-shell";
+
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { supabase } from "@/integrations/supabase/client";
@@ -131,7 +131,7 @@ function ProgressPage() {
   }, [user]);
 
   return (
-    <MobileShell>
+    <>
       <header className="animate-fade-up">
         <h1 className="text-foreground text-2xl font-black">Progress</h1>
         <p className="text-xs text-muted-foreground">Your last 7 days at a glance.</p>
@@ -257,9 +257,12 @@ function ProgressPage() {
       {profile?.weight_kg && (
         <p className="mt-2 text-[10px] italic text-muted-foreground">{CAL_DISCLAIMER}</p>
       )}
-    </MobileShell>
+    </>
   );
 }
+
+export const ProgressContent = ProgressPage;
+
 
 function Tile({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (

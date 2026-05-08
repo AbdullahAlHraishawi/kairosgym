@@ -12,7 +12,7 @@ import {
   Lock,
   Scale,
 } from "lucide-react";
-import { MobileShell } from "@/components/mobile-shell";
+
 import { Avatar } from "@/components/avatar";
 import { XpBar } from "@/components/xp-bar";
 import { AtmoCard } from "@/components/atmo-card";
@@ -114,18 +114,16 @@ function ProfilePage() {
 
   if (!profile) {
     return (
-      <MobileShell>
-        <div className="flex h-[60vh] items-center justify-center text-muted-foreground">
-          <div className="animate-flame text-primary text-3xl">⚔</div>
-        </div>
-      </MobileShell>
+      <div className="flex h-[60vh] items-center justify-center text-muted-foreground">
+        <div className="animate-flame text-primary text-3xl">⚔</div>
+      </div>
     );
   }
 
   const lp = levelProgress(profile.total_xp);
 
   return (
-    <MobileShell>
+    <>
       {/* Header */}
       <AtmoCard
         image={atmoBlade}
@@ -305,9 +303,11 @@ function ProfilePage() {
           </div>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
-    </MobileShell>
+    </>
   );
 }
+
+export const ProfileContent = ProfilePage;
 
 function MenuLink({
   to,

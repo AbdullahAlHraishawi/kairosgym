@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Search, Plus, ArrowRight, Dumbbell } from "lucide-react";
-import { MobileShell } from "@/components/mobile-shell";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -114,7 +114,7 @@ function WorkoutPage() {
   };
 
   return (
-    <MobileShell>
+    <>
       {/* Hero */}
       <div className="animate-fade-up bg-card relative overflow-hidden rounded-2xl border border-border p-5">
         <div
@@ -238,6 +238,8 @@ function WorkoutPage() {
           Create empty workout
         </Link>
       )}
-    </MobileShell>
+    </>
   );
 }
+
+export const WorkoutContent = WorkoutPage;
