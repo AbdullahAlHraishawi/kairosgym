@@ -74,6 +74,7 @@ function LogPage() {
     [],
   );
   const [exiting, setExiting] = useState(false);
+  const [ctaReady, setCtaReady] = useState(false);
   const [floaters, setFloaters] = useState<Record<string, number | null>>({});
   const [levelUpValue, setLevelUpValue] = useState<number | null>(null);
   const [levelUpPhase, setLevelUpPhase] = useState<"idle" | "in" | "out">("idle");
@@ -132,6 +133,15 @@ function LogPage() {
       cancelled = true;
     };
   }, [loading, user]);
+
+  useEffect(() => {
+    if (intro || loadingSession || entries.length === 0 || exiting) {
+      setCtaReady(false);
+      return;
+    }
+    const t = setTimeout(() => setCtaReady(true), 450);
+    return () => clearTimeout(t);
+  }, [intro, loadingSession, entries.length, exiting]);
 
   const handleIntroDone = () => {
     introTimerDoneRef.current = true;
@@ -425,7 +435,7 @@ function LogPage() {
 
       {/* Sticky CTA */}
       {entries.length > 0 && (
-        <div className={`fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 px-5 pb-5 pt-6 pointer-events-none transition-opacity duration-300 ${exiting ? "opacity-0" : "opacity-100"}`}
+        <div className={`fixed bottom-0 left-1/2 z-30 w-full max-w-md px-5 pb-5 pt-6 pointer-events-none transition-all duration-500 ease-out ${ctaReady && !exiting ? "opacity-100 translate-x-[-50%] translate-y-0" : "opacity-0 translate-x-[-50%] translate-y-2"}`}
           style={{
             background:
               "linear-gradient(180deg, transparent 0%, var(--background) 55%)",
