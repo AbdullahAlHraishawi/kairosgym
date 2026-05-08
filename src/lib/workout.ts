@@ -54,14 +54,24 @@ async function requireUserId(): Promise<string> {
 async function buildDraft(workoutId: string, startedAt: string): Promise<DraftWorkout> {
   const { data: wex } = await supabase
     .from("workout_exercises")
-    .select("id, order_idx, exercise_id, exercises(id, name, muscle_group)")
+    .select("id, order_idx, exercise_id")
     .eq("workout_id", workoutId)
     .order("order_idx");
 
   const exRows = wex ?? [];
   const wexIds = exRows.map((e) => e.id);
+  const exerciseIds = Array.from(new Set(exRows.map((e) => e.exercise_id)));
 
-  let setsByWex = new Map<string, DraftSet[]>();
+  const exerciseMap = new Map<string, { id: string; name: string; muscle_group: string }>();
+  if (exerciseIds.length) {
+    const { data: exs } = await supabase
+      .from("exercises")
+      .select("id, name, muscle_group")
+      .in("id", exerciseIds);
+    (exs ?? []).forEach((e) => exerciseMap.set(e.id, e));
+  }
+
+  const setsByWex = new Map<string, DraftSet[]>();
   if (wexIds.length) {
     const { data: sets } = await supabase
       .from("workout_sets")
@@ -81,20 +91,15 @@ async function buildDraft(workoutId: string, startedAt: string): Promise<DraftWo
     });
   }
 
-  const entries: DraftExercise[] = exRows.map((row) => {
-    const ex = (row.exercises ?? null) as
-      | { id: string; name: string; muscle_group: string }
-      | null;
-    return {
-      workoutExerciseId: row.id,
-      info: ex ?? {
-        id: row.exercise_id,
-        name: "Exercise",
-        muscle_group: "",
-      },
-      sets: setsByWex.get(row.id) ?? [],
-    };
-  });
+  const entries: DraftExercise[] = exRows.map((row) => ({
+    workoutExerciseId: row.id,
+    info: exerciseMap.get(row.exercise_id) ?? {
+      id: row.exercise_id,
+      name: "Exercise",
+      muscle_group: "",
+    },
+    sets: setsByWex.get(row.id) ?? [],
+  }));
 
   return { workoutId, startedAt, entries };
 }
