@@ -39,10 +39,10 @@ export const Route = createFileRoute("/profile")({
       { name: "description", content: "Your KAIROS profile, rank, and badges." },
     ],
   }),
-  component: ProfilePage,
+  component: ProfileContent,
 });
 
-function ProfilePage() {
+export function ProfileContent() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { profile, refresh } = useProfile(user?.id);
@@ -307,7 +307,6 @@ function ProfilePage() {
   );
 }
 
-export const ProfileContent = ProfilePage;
 
 function MenuLink({
   to,

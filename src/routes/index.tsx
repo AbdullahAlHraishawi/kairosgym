@@ -29,7 +29,7 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
-  component: HomePage,
+  component: HomeContent,
 });
 
 interface AchPreview {
@@ -45,7 +45,7 @@ const MOCK_LEADERS = [
   { rank: 3, username: "iron_oni", level: 10, xp: 10880, seed: "I" },
 ];
 
-function HomePage() {
+export function HomeContent() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile(user?.id);
@@ -337,7 +337,6 @@ function HomePage() {
   );
 }
 
-export const HomeContent = HomePage;
 
 function StatCard({
   label,

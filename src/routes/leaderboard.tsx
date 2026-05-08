@@ -14,7 +14,7 @@ export const Route = createFileRoute("/leaderboard")({
       { name: "description", content: "Top-ranked KAIROS warriors by total XP." },
     ],
   }),
-  component: LeaderboardPage,
+  component: LeaderboardContent,
 });
 
 const MOCK = [
@@ -28,7 +28,7 @@ const MOCK = [
   { username: "you", xp: 0, level: 0, seed: "Y" },
 ];
 
-function LeaderboardPage() {
+export function LeaderboardContent() {
   return (
     <>
       <header className="animate-fade-up flex items-center gap-3">
@@ -124,4 +124,3 @@ function LeaderboardPage() {
   );
 }
 
-export const LeaderboardContent = LeaderboardPage;
