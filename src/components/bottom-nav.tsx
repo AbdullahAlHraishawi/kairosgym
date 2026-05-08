@@ -9,18 +9,25 @@ const tabs = [
   { to: "/profile", label: "You", icon: User, exact: true },
 ] as const;
 
-export function BottomNav() {
+export function BottomNav({ onTabClick }: { onTabClick?: (idx: number) => void }) {
   const { pathname } = useLocation();
   return (
     <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-md -translate-x-1/2 border-t border-border/50 bg-background/40 backdrop-blur-xl backdrop-saturate-150">
       <ul className="flex items-center justify-around px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2">
-        {tabs.map((t) => {
+        {tabs.map((t, i) => {
           const active = t.exact ? pathname === t.to : pathname.startsWith(t.to);
           const Icon = t.icon;
+          const handleClick = onTabClick
+            ? (e: React.MouseEvent) => {
+                e.preventDefault();
+                onTabClick(i);
+              }
+            : undefined;
           return (
             <li key={t.to} className="flex-1">
               <Link
                 to={t.to}
+                onClick={handleClick}
                 className="press flex flex-col items-center gap-0.5 rounded-lg py-1.5 text-[10px] font-medium"
               >
                 <Icon
