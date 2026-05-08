@@ -3,12 +3,15 @@ import { Flame, Dumbbell, TrendingUp, Lock } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Avatar } from "@/components/avatar";
+import { CharacterAvatar } from "@/components/character-avatar";
+import { CharacterBanner } from "@/components/character-banner";
 import { XpBar } from "@/components/xp-bar";
 import { AtmoCard } from "@/components/atmo-card";
 import { BadgeEmblem } from "@/components/badge-emblem";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress, titleForLevel } from "@/lib/xp";
+import { getCharacter } from "@/lib/characters";
 import { supabase } from "@/integrations/supabase/client";
 import {
   sumWorkoutCalories,
@@ -119,35 +122,38 @@ export function HomeContent() {
   const dailyTarget = 1;
   const todayProgress = Math.min(1, todayCount / dailyTarget);
 
+  const character = getCharacter(profile.character_key);
+
   return (
     <>
-      <div className="animate-fade-up flex items-center justify-between">
-        <Link to="/profile" className="flex items-center gap-3">
-          <Avatar seed={profile.avatar_seed} size={52} />
-          <div>
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">
-              Yo,
-            </div>
-            <div className="text-foreground text-lg font-bold leading-tight">
-              {profile.username}.
-            </div>
-            <div className="text-[11px] text-muted-foreground">Today is your day.</div>
-          </div>
-        </Link>
-        <div className="bg-card flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 edge-red">
+      <section className="animate-fade-up -mx-5 -mt-2 relative">
+        <CharacterBanner character={character} className="rounded-t-none rounded-b-2xl" />
+        <div className="absolute right-4 top-4 bg-card/80 backdrop-blur-sm flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 edge-red">
           <Flame className="text-primary animate-flame h-4 w-4" />
           <span className="text-sm font-bold text-display">{profile.streak}</span>
           <span className="text-[11px] text-muted-foreground">day</span>
         </div>
-      </div>
+      </section>
 
-      <div
-        className="mt-5 h-px w-full"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent, oklch(0.58 0.19 25 / 0.4), transparent)",
-        }}
-      />
+      <div className="-mt-8 flex items-end gap-3 px-1 relative z-10">
+        <Link to="/profile" className="press shrink-0">
+          <CharacterAvatar
+            character={character}
+            fallbackSeed={profile.avatar_seed}
+            size={68}
+            className="ring-4 ring-background"
+          />
+        </Link>
+        <Link to="/profile" className="pb-1 min-w-0 flex-1">
+          <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
+            Yo,
+          </div>
+          <div className="text-foreground text-lg font-bold leading-tight truncate">
+            {profile.username}.
+          </div>
+          <div className="text-[11px] text-muted-foreground">Today is your day.</div>
+        </Link>
+      </div>
 
       <section className="animate-fade-up mt-5">
         <AtmoCard
