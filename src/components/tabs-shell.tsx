@@ -11,9 +11,7 @@ const TAB_PATHS = ["/", "/workout", "/progress", "/leaderboard", "/profile"] as 
 type TabPath = (typeof TAB_PATHS)[number];
 
 export function isTabPath(pathname: string): boolean {
-  return TAB_PATHS.some(
-    (p) => pathname === p || (p !== "/" && pathname.startsWith(p + "/")),
-  );
+  return (TAB_PATHS as readonly string[]).includes(pathname);
 }
 
 function indexFromPath(pathname: string): number {
