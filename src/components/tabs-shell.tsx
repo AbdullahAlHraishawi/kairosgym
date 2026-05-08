@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { BottomNav } from "./bottom-nav";
-import { HomeContent } from "@/routes/index";
-import { WorkoutContent } from "@/routes/workout.index";
-import { ProgressContent } from "@/routes/progress";
-import { LeaderboardContent } from "@/routes/leaderboard";
-import { ProfileContent } from "@/routes/profile";
+import { HomeContent } from "@/components/tabs/home-content";
+import { WorkoutContent } from "@/components/tabs/workout-content";
+import { ProgressContent } from "@/components/tabs/progress-content";
+import { LeaderboardContent } from "@/components/tabs/leaderboard-content";
+import { ProfileContent } from "@/components/tabs/profile-content";
 
 const TAB_PATHS = ["/", "/workout", "/progress", "/leaderboard", "/profile"] as const;
 type TabPath = (typeof TAB_PATHS)[number];
@@ -65,10 +65,15 @@ export function TabsShell() {
   const navigate = useNavigate();
   const initialIdx = indexFromPath(pathname);
   const [activeIndex, setActiveIndex] = useState(initialIdx);
+  const [isHydrated, setIsHydrated] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef<Array<HTMLDivElement | null>>([]);
   const scrollSaved = useRef<number[]>([0, 0, 0, 0, 0]);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Sync when URL changes externally (back btn, link click outside swipe)
   useEffect(() => {
@@ -81,8 +86,10 @@ export function TabsShell() {
     const strip = stripRef.current;
     if (!strip) return;
     strip.style.transition = `transform ${DURATION}ms ${EASE}`;
-    strip.style.transform = `translate3d(${-activeIndex * 100}%, 0, 0)`;
-  }, [activeIndex]);
+    strip.style.transform = isHydrated
+      ? `translate3d(${-activeIndex * (100 / PANELS.length)}%, 0, 0)`
+      : "translate3d(0, 0, 0)";
+  }, [activeIndex, isHydrated]);
 
   // Touch swipe handling
   useEffect(() => {
@@ -248,6 +255,10 @@ export function TabsShell() {
     navigate({ to: PANELS[idx].path, replace: true });
   };
 
+  const renderedPanels = isHydrated
+    ? PANELS.map((panel, index) => ({ panel, index }))
+    : [{ panel: PANELS[activeIndex], index: activeIndex }];
+
   return (
     <div
       ref={rootRef}
@@ -258,16 +269,16 @@ export function TabsShell() {
       <div
         ref={stripRef}
         className="relative z-10 flex h-full will-change-transform"
-        style={{ width: `${PANELS.length * 100}%` }}
+        style={{ width: isHydrated ? `${PANELS.length * 100}%` : "100%" }}
       >
-        {PANELS.map((p, i) => (
+        {renderedPanels.map(({ panel: p, index: i }) => (
           <div
             key={p.path}
             ref={(el) => {
               panelRefs.current[i] = el;
             }}
             className="h-full overflow-y-auto overflow-x-hidden px-5 pt-6 pb-28"
-            style={{ width: `${100 / PANELS.length}%`, WebkitOverflowScrolling: "touch" }}
+            style={{ width: isHydrated ? `${100 / PANELS.length}%` : "100%", WebkitOverflowScrolling: "touch" }}
             aria-hidden={i !== activeIndex}
           >
             {p.render()}
