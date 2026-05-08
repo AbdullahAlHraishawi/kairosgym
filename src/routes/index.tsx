@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Flame, Dumbbell, TrendingUp, Lock } from "lucide-react";
 import { useEffect, useState } from "react";
-import { MobileShell } from "@/components/mobile-shell";
+
 import { Avatar } from "@/components/avatar";
 import { XpBar } from "@/components/xp-bar";
 import { AtmoCard } from "@/components/atmo-card";
@@ -123,11 +123,9 @@ function HomePage() {
 
   if (authLoading || profileLoading || !profile) {
     return (
-      <MobileShell>
-        <div className="flex h-[60vh] items-center justify-center text-muted-foreground">
-          <div className="animate-flame text-primary text-3xl">⚔</div>
-        </div>
-      </MobileShell>
+      <div className="flex h-[60vh] items-center justify-center text-muted-foreground">
+        <div className="animate-flame text-primary text-3xl">⚔</div>
+      </div>
     );
   }
 
@@ -136,7 +134,7 @@ function HomePage() {
   const todayProgress = Math.min(1, todayCount / dailyTarget);
 
   return (
-    <MobileShell>
+    <>
       {/* Top */}
       <div className="animate-fade-up flex items-center justify-between">
         <Link to="/profile" className="flex items-center gap-3">
@@ -335,9 +333,11 @@ function HomePage() {
           </div>
         </AtmoCard>
       </section>
-    </MobileShell>
+    </>
   );
 }
+
+export const HomeContent = HomePage;
 
 function StatCard({
   label,

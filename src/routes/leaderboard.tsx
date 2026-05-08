@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Trophy } from "lucide-react";
-import { MobileShell } from "@/components/mobile-shell";
+
 import { Avatar } from "@/components/avatar";
 import { AtmoCard } from "@/components/atmo-card";
 import { BadgeEmblem } from "@/components/badge-emblem";
@@ -30,7 +30,7 @@ const MOCK = [
 
 function LeaderboardPage() {
   return (
-    <MobileShell>
+    <>
       <header className="animate-fade-up flex items-center gap-3">
         <div className="bg-primary/15 text-primary flex h-10 w-10 items-center justify-center rounded-xl">
           <Trophy className="h-5 w-5" />
@@ -120,6 +120,8 @@ function LeaderboardPage() {
           );
         })}
       </div>
-    </MobileShell>
+    </>
   );
 }
+
+export const LeaderboardContent = LeaderboardPage;
