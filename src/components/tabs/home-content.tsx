@@ -126,7 +126,7 @@ export function HomeContent() {
 
   return (
     <>
-      <section className="animate-fade-up -mx-5 -mt-2 relative">
+      <section className="animate-fade-up -mx-5 -mt-6 relative">
         <CharacterBanner character={character} className="rounded-t-none rounded-b-2xl" />
         <div className="absolute right-4 top-4 bg-card/80 backdrop-blur-sm flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 edge-red">
           <Flame className="text-primary animate-flame h-4 w-4" />

@@ -118,7 +118,7 @@ export function ProfileContent() {
 
   return (
     <>
-      <section className="animate-fade-up -mx-5 -mt-2 relative">
+      <section className="animate-fade-up -mx-5 -mt-6 relative">
         <CharacterBanner character={character} className="rounded-t-none rounded-b-2xl" showChooseCta={false} />
       </section>
       <div className="-mt-12 flex flex-col items-center text-center relative z-10">
