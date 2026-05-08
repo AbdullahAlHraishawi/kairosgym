@@ -75,9 +75,11 @@ export function CharacterPicker({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-2xl">
-        <CharacterBanner character={preview} showChooseCta={false} />
-      </div>
+      {variant === "onboarding" && (
+        <div className="overflow-hidden rounded-2xl">
+          <CharacterBanner character={preview} showChooseCta={false} />
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-3">
         {CHARACTER_LIST.map((c) => {
