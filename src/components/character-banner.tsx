@@ -16,11 +16,9 @@ export function CharacterBanner({
   className,
   showChooseCta = true,
 }: CharacterBannerProps) {
-  const { currentSrc, nextSrc, showNext, fadeMs } = useCharacterBanner(
-    character?.banners ?? [],
-  );
+  const { layerA, layerB, fadeMs } = useCharacterBanner(character?.banners ?? []);
 
-  if (!character || !currentSrc) {
+  if (!character || (!layerA.src && !layerB.src)) {
     return (
       <div
         className={cn(
@@ -56,31 +54,37 @@ export function CharacterBanner({
     );
   }
 
+  const layerStyle = (visible: boolean): React.CSSProperties => ({
+    opacity: visible ? 1 : 0,
+    transitionProperty: "opacity",
+    transitionDuration: `${fadeMs}ms`,
+    transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+    objectPosition: "center",
+  });
+
   return (
     <div
       className={cn("relative w-full overflow-hidden rounded-2xl", className)}
       style={{ height: "clamp(180px, 28vw, 240px)" }}
     >
-      <img
-        src={currentSrc}
-        alt=""
-        aria-hidden
-        loading="eager"
-        className="absolute inset-0 h-full w-full object-cover"
-        style={{ objectPosition: "center" }}
-      />
-      {nextSrc && nextSrc !== currentSrc && (
+      {layerA.src && (
         <img
-          src={nextSrc}
+          src={layerA.src}
           alt=""
           aria-hidden
           loading="eager"
-          className="absolute inset-0 h-full w-full object-cover transition-opacity ease-in-out"
-          style={{
-            opacity: showNext ? 1 : 0,
-            transitionDuration: `${fadeMs}ms`,
-            objectPosition: "center",
-          }}
+          className="absolute inset-0 h-full w-full object-cover"
+          style={layerStyle(layerA.visible)}
+        />
+      )}
+      {layerB.src && (
+        <img
+          src={layerB.src}
+          alt=""
+          aria-hidden
+          loading="eager"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={layerStyle(layerB.visible)}
         />
       )}
       <div
