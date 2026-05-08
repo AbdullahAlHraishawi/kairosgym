@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Calendar, Dumbbell, Pencil, Play, Loader2 } from "lucide-react";
+import { Plus, Calendar, Dumbbell, Pencil, Play, Loader2, Settings2 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { listPlans, getPlan, dayDisplayName, type PlanSummary, type PlanFull } from "@/lib/plans";
