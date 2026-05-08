@@ -18,6 +18,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkoutIndexRouteImport } from './routes/workout.index'
 import { Route as WorkoutLogRouteImport } from './routes/workout.log'
 import { Route as WorkoutCompleteRouteImport } from './routes/workout.complete'
+import { Route as WorkoutPlansNewRouteImport } from './routes/workout.plans.new'
+import { Route as WorkoutPlansPlanIdRouteImport } from './routes/workout.plans.$planId'
+import { Route as WorkoutPlansPlanIdDayDayIdRouteImport } from './routes/workout.plans.$planId.day.$dayId'
 
 const RanksRoute = RanksRouteImport.update({
   id: '/ranks',
@@ -64,6 +67,22 @@ const WorkoutCompleteRoute = WorkoutCompleteRouteImport.update({
   path: '/workout/complete',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkoutPlansNewRoute = WorkoutPlansNewRouteImport.update({
+  id: '/workout/plans/new',
+  path: '/workout/plans/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutPlansPlanIdRoute = WorkoutPlansPlanIdRouteImport.update({
+  id: '/workout/plans/$planId',
+  path: '/workout/plans/$planId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutPlansPlanIdDayDayIdRoute =
+  WorkoutPlansPlanIdDayDayIdRouteImport.update({
+    id: '/day/$dayId',
+    path: '/day/$dayId',
+    getParentRoute: () => WorkoutPlansPlanIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +94,9 @@ export interface FileRoutesByFullPath {
   '/workout/complete': typeof WorkoutCompleteRoute
   '/workout/log': typeof WorkoutLogRoute
   '/workout/': typeof WorkoutIndexRoute
+  '/workout/plans/$planId': typeof WorkoutPlansPlanIdRouteWithChildren
+  '/workout/plans/new': typeof WorkoutPlansNewRoute
+  '/workout/plans/$planId/day/$dayId': typeof WorkoutPlansPlanIdDayDayIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +108,9 @@ export interface FileRoutesByTo {
   '/workout/complete': typeof WorkoutCompleteRoute
   '/workout/log': typeof WorkoutLogRoute
   '/workout': typeof WorkoutIndexRoute
+  '/workout/plans/$planId': typeof WorkoutPlansPlanIdRouteWithChildren
+  '/workout/plans/new': typeof WorkoutPlansNewRoute
+  '/workout/plans/$planId/day/$dayId': typeof WorkoutPlansPlanIdDayDayIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +123,9 @@ export interface FileRoutesById {
   '/workout/complete': typeof WorkoutCompleteRoute
   '/workout/log': typeof WorkoutLogRoute
   '/workout/': typeof WorkoutIndexRoute
+  '/workout/plans/$planId': typeof WorkoutPlansPlanIdRouteWithChildren
+  '/workout/plans/new': typeof WorkoutPlansNewRoute
+  '/workout/plans/$planId/day/$dayId': typeof WorkoutPlansPlanIdDayDayIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +139,9 @@ export interface FileRouteTypes {
     | '/workout/complete'
     | '/workout/log'
     | '/workout/'
+    | '/workout/plans/$planId'
+    | '/workout/plans/new'
+    | '/workout/plans/$planId/day/$dayId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +153,9 @@ export interface FileRouteTypes {
     | '/workout/complete'
     | '/workout/log'
     | '/workout'
+    | '/workout/plans/$planId'
+    | '/workout/plans/new'
+    | '/workout/plans/$planId/day/$dayId'
   id:
     | '__root__'
     | '/'
@@ -133,6 +167,9 @@ export interface FileRouteTypes {
     | '/workout/complete'
     | '/workout/log'
     | '/workout/'
+    | '/workout/plans/$planId'
+    | '/workout/plans/new'
+    | '/workout/plans/$planId/day/$dayId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +182,8 @@ export interface RootRouteChildren {
   WorkoutCompleteRoute: typeof WorkoutCompleteRoute
   WorkoutLogRoute: typeof WorkoutLogRoute
   WorkoutIndexRoute: typeof WorkoutIndexRoute
+  WorkoutPlansPlanIdRoute: typeof WorkoutPlansPlanIdRouteWithChildren
+  WorkoutPlansNewRoute: typeof WorkoutPlansNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,8 +251,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkoutCompleteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workout/plans/new': {
+      id: '/workout/plans/new'
+      path: '/workout/plans/new'
+      fullPath: '/workout/plans/new'
+      preLoaderRoute: typeof WorkoutPlansNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workout/plans/$planId': {
+      id: '/workout/plans/$planId'
+      path: '/workout/plans/$planId'
+      fullPath: '/workout/plans/$planId'
+      preLoaderRoute: typeof WorkoutPlansPlanIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workout/plans/$planId/day/$dayId': {
+      id: '/workout/plans/$planId/day/$dayId'
+      path: '/day/$dayId'
+      fullPath: '/workout/plans/$planId/day/$dayId'
+      preLoaderRoute: typeof WorkoutPlansPlanIdDayDayIdRouteImport
+      parentRoute: typeof WorkoutPlansPlanIdRoute
+    }
   }
 }
+
+interface WorkoutPlansPlanIdRouteChildren {
+  WorkoutPlansPlanIdDayDayIdRoute: typeof WorkoutPlansPlanIdDayDayIdRoute
+}
+
+const WorkoutPlansPlanIdRouteChildren: WorkoutPlansPlanIdRouteChildren = {
+  WorkoutPlansPlanIdDayDayIdRoute: WorkoutPlansPlanIdDayDayIdRoute,
+}
+
+const WorkoutPlansPlanIdRouteWithChildren =
+  WorkoutPlansPlanIdRoute._addFileChildren(WorkoutPlansPlanIdRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -225,6 +296,8 @@ const rootRouteChildren: RootRouteChildren = {
   WorkoutCompleteRoute: WorkoutCompleteRoute,
   WorkoutLogRoute: WorkoutLogRoute,
   WorkoutIndexRoute: WorkoutIndexRoute,
+  WorkoutPlansPlanIdRoute: WorkoutPlansPlanIdRouteWithChildren,
+  WorkoutPlansNewRoute: WorkoutPlansNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -74,6 +74,127 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_days: {
+        Row: {
+          day_index: number
+          id: string
+          name: string | null
+          plan_id: string
+        }
+        Insert: {
+          day_index?: number
+          id?: string
+          name?: string | null
+          plan_id: string
+        }
+        Update: {
+          day_index?: number
+          id?: string
+          name?: string | null
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_days_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_exercises: {
+        Row: {
+          day_id: string
+          exercise_id: string
+          id: string
+          order_idx: number
+        }
+        Insert: {
+          day_id: string
+          exercise_id: string
+          id?: string
+          order_idx?: number
+        }
+        Update: {
+          day_id?: string
+          exercise_id?: string
+          id?: string
+          order_idx?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_exercises_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "plan_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_sets: {
+        Row: {
+          id: string
+          plan_exercise_id: string
+          reps: number
+          set_idx: number
+          weight: number
+        }
+        Insert: {
+          id?: string
+          plan_exercise_id: string
+          reps?: number
+          set_idx?: number
+          weight?: number
+        }
+        Update: {
+          id?: string
+          plan_exercise_id?: string
+          reps?: number
+          set_idx?: number
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_sets_plan_exercise_id_fkey"
+            columns: ["plan_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "plan_exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_seed: string

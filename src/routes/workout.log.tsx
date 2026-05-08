@@ -60,10 +60,14 @@ function LogPage() {
   const { profile } = useProfile(user?.id);
   const [entries, setEntries] = useState<EntryState[]>([]);
   const [loadingSession, setLoadingSession] = useState(true);
-  // Show splash immediately if we're starting a brand-new session (picks queued)
+  // Show splash immediately if we're starting a brand-new session
+  // (either Quick picks queued OR a planned launch).
   const [intro, setIntro] = useState(() => {
     if (typeof window === "undefined") return false;
-    return !!window.sessionStorage.getItem("kairos_picked");
+    return (
+      !!window.sessionStorage.getItem("kairos_picked") ||
+      !!window.sessionStorage.getItem("kairos_planned_launch")
+    );
   });
   const introTimerDoneRef = useRef(false);
   const sessionReadyRef = useRef(false);
@@ -98,14 +102,21 @@ function LogPage() {
       try {
         const existing = await loadOpenWorkout();
         if (cancelled) return;
+        const plannedLaunch = !!sessionStorage.getItem("kairos_planned_launch");
         if (existing) {
           setWorkoutId(existing.workoutId);
           setStartedAt(new Date(existing.startedAt).getTime());
           setEntries(draftToEntries(existing));
-          setIntro(false); // resume silently
           sessionReadyRef.current = true;
           setLoadingSession(false);
           sessionStorage.removeItem("kairos_picked");
+          sessionStorage.removeItem("kairos_planned_launch");
+          if (plannedLaunch) {
+            // Show splash; dismiss when timer finishes
+            if (introTimerDoneRef.current) setIntro(false);
+          } else {
+            setIntro(false); // pure resume
+          }
           return;
         }
         const raw = sessionStorage.getItem("kairos_picked");
