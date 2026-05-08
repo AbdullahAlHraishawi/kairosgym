@@ -51,6 +51,13 @@ export const Route = createRootRoute({
         content: "Fitness gamified. Earn XP, climb ranks, and stay on streak.",
       },
       { property: "og:type", content: "website" },
+      { name: "twitter:title", content: "KAIROS — Train. Level up." },
+      { name: "description", content: "Log Your Workout & Level Up" },
+      { property: "og:description", content: "Log Your Workout & Level Up" },
+      { name: "twitter:description", content: "Log Your Workout & Level Up" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9daaf732-2c58-4bc7-9ba8-1360dbd42218/id-preview-4fcc68a3--9cc3554a-a8ac-4cca-9e07-15cffb4090d5.lovable.app-1778222994095.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9daaf732-2c58-4bc7-9ba8-1360dbd42218/id-preview-4fcc68a3--9cc3554a-a8ac-4cca-9e07-15cffb4090d5.lovable.app-1778222994095.png" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
