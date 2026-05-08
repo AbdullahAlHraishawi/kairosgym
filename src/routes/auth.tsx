@@ -274,6 +274,7 @@ function AuthPage() {
               <span>{mode === "signin" ? "Create Account" : "Back to Sign In"}</span>
             </button>
           </form>
+          )}
         </div>
 
         {/* Footer brand strip */}
