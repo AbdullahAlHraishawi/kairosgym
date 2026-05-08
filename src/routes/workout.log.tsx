@@ -6,11 +6,17 @@ import { SessionIntro } from "@/components/session-intro";
 import { SessionTimer } from "@/components/session-timer";
 import { SetRow, type SetRowState } from "@/components/set-row";
 import { XpBar } from "@/components/xp-bar";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { levelProgress, xpForSet } from "@/lib/xp";
-import { finishWorkout } from "@/lib/workout";
+import {
+  addDraftSet,
+  finalizeWorkout,
+  loadOpenWorkout,
+  openWorkout,
+  updateDraftSet,
+  type DraftWorkout,
+} from "@/lib/workout";
 
 export const Route = createFileRoute("/workout/log")({
   head: () => ({
@@ -22,8 +28,11 @@ export const Route = createFileRoute("/workout/log")({
   component: LogPage,
 });
 
-type ExerciseInfo = { id: string; name: string; muscle_group: string };
-type Entry = { info: ExerciseInfo; sets: SetRowState[] };
+type EntryState = {
+  workoutExerciseId: string;
+  info: { id: string; name: string; muscle_group: string };
+  sets: (SetRowState & { id: string })[];
+};
 
 const SUBTITLES = [
   "Forge your limits.",
@@ -32,15 +41,28 @@ const SUBTITLES = [
   "Outwork yesterday.",
 ];
 
+function draftToEntries(draft: DraftWorkout): EntryState[] {
+  return draft.entries.map((e) => ({
+    workoutExerciseId: e.workoutExerciseId,
+    info: e.info,
+    sets: e.sets.map((s) => ({
+      id: s.id,
+      weight: s.weight,
+      reps: s.reps,
+      done: s.done,
+    })),
+  }));
+}
+
 function LogPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { profile } = useProfile(user?.id);
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [loadingExercises, setLoadingExercises] = useState(true);
-  const [intro, setIntro] = useState(true);
-  const startedAtRef = useRef<number | null>(null);
-  const [, forceTick] = useState(0);
+  const [entries, setEntries] = useState<EntryState[]>([]);
+  const [loadingSession, setLoadingSession] = useState(true);
+  const [intro, setIntro] = useState(false);
+  const [workoutId, setWorkoutId] = useState<string | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
   const subtitle = useMemo(
     () => SUBTITLES[Math.floor(Math.random() * SUBTITLES.length)],
     [],
@@ -61,40 +83,45 @@ function LogPage() {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [loading, user, navigate]);
 
-  // Fetch exercises during the intro splash so they're ready when it ends
+  // Resume an existing draft, or open a new one from sessionStorage picks.
   useEffect(() => {
-    const raw = sessionStorage.getItem("kairos_picked");
-    const ids: string[] = raw ? JSON.parse(raw) : [];
-    if (ids.length === 0) {
-      setLoadingExercises(false);
-      return;
-    }
-    void supabase
-      .from("exercises")
-      .select("id, name, muscle_group")
-      .in("id", ids)
-      .then(({ data }) => {
-        const ordered = ids
-          .map((id) => (data ?? []).find((e) => e.id === id))
-          .filter(Boolean) as ExerciseInfo[];
-        setEntries(
-          ordered.map((info) => ({
-            info,
-            sets: [
-              { weight: 0, reps: 0, done: false },
-              { weight: 0, reps: 0, done: false },
-              { weight: 0, reps: 0, done: false },
-            ],
-          })),
-        );
-        setLoadingExercises(false);
-      });
-  }, []);
+    if (loading || !user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const existing = await loadOpenWorkout();
+        if (cancelled) return;
+        if (existing) {
+          setWorkoutId(existing.workoutId);
+          setStartedAt(new Date(existing.startedAt).getTime());
+          setEntries(draftToEntries(existing));
+          setIntro(false); // resume silently
+          setLoadingSession(false);
+          sessionStorage.removeItem("kairos_picked");
+          return;
+        }
+        const raw = sessionStorage.getItem("kairos_picked");
+        const ids: string[] = raw ? JSON.parse(raw) : [];
+        const draft = await openWorkout(ids);
+        if (cancelled) return;
+        sessionStorage.removeItem("kairos_picked");
+        setWorkoutId(draft.workoutId);
+        setStartedAt(new Date(draft.startedAt).getTime());
+        setEntries(draftToEntries(draft));
+        setIntro(true);
+        setLoadingSession(false);
+      } catch (e) {
+        console.error("Failed to load session", e);
+        if (!cancelled) setLoadingSession(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, user]);
 
   const handleIntroDone = () => {
-    startedAtRef.current = Date.now();
     setIntro(false);
-    forceTick((n) => n + 1);
   };
 
   // Live session XP from completed sets only
@@ -111,7 +138,7 @@ function LogPage() {
   const liveTotalXp = (baseXp ?? profile?.total_xp ?? 0) + sessionXp;
   const lp = levelProgress(liveTotalXp);
 
-  // Detect level-up (only after baseline XP is known, so initial profile load doesn't trigger it)
+  // Detect level-up
   const prevLevelRef = useRef<number | null>(null);
   useEffect(() => {
     if (baseXp === null) return;
@@ -156,12 +183,16 @@ function LogPage() {
       sets[si] = after;
       next[ei] = { ...next[ei], sets };
 
-      // Trigger floater on done false -> true
       if (!before.done && after.done) {
         const xp = xpForSet(after.reps);
         const key = `${ei}-${si}`;
         setFloaters((f) => ({ ...f, [key]: xp }));
       }
+
+      // Persist to DB (fire-and-forget)
+      void updateDraftSet(before.id, patch).catch((err) =>
+        console.error("Failed to persist set", err),
+      );
       return next;
     });
   };
@@ -169,43 +200,40 @@ function LogPage() {
   const clearFloater = (key: string) =>
     setFloaters((f) => ({ ...f, [key]: null }));
 
-  const addSet = (ei: number) =>
-    setEntries((prev) => {
-      const next = [...prev];
-      const last = next[ei].sets[next[ei].sets.length - 1];
-      next[ei] = {
-        ...next[ei],
-        sets: [
-          ...next[ei].sets,
-          { weight: last?.weight ?? 0, reps: last?.reps ?? 0, done: false },
-        ],
-      };
-      return next;
-    });
+  const addSet = async (ei: number) => {
+    const entry = entries[ei];
+    const last = entry.sets[entry.sets.length - 1];
+    try {
+      const seed = { weight: last?.weight ?? 0, reps: last?.reps ?? 0 };
+      const created = await addDraftSet(entry.workoutExerciseId, seed);
+      setEntries((prev) => {
+        const next = [...prev];
+        next[ei] = {
+          ...next[ei],
+          sets: [
+            ...next[ei].sets,
+            { id: created.id, weight: created.weight, reps: created.reps, done: created.done },
+          ],
+        };
+        return next;
+      });
+    } catch (err) {
+      console.error("Failed to add set", err);
+    }
+  };
 
   const submittingRef = useRef(false);
   const completeSession = async () => {
-    if (submittingRef.current) return;
+    if (submittingRef.current || !workoutId) return;
     submittingRef.current = true;
     setExiting(true);
-    const logged = entries
-      .map((e) => ({
-        exerciseId: e.info.id,
-        sets: e.sets
-          .filter((s) => s.done && s.reps > 0)
-          .map((s) => ({ weight: s.weight, reps: s.reps })),
-      }))
-      .filter((e) => e.sets.length > 0);
-    sessionStorage.removeItem("kairos_picked");
-    if (logged.length === 0) {
-      setTimeout(() => navigate({ to: "/" }), 350);
-      return;
-    }
     try {
-      const res = await finishWorkout(logged, new Date(startedAtRef.current ?? Date.now()));
+      const res = await finalizeWorkout(workoutId);
       navigate({ to: "/workout/complete", search: { id: res.workoutId } });
     } catch (e) {
-      console.error("finishWorkout failed", e);
+      console.error("finalizeWorkout failed", e);
+      submittingRef.current = false;
+      setExiting(false);
       navigate({ to: "/" });
     }
   };
@@ -235,7 +263,6 @@ function LogPage() {
             borderBottom: "1px solid color-mix(in oklab, var(--border) 60%, transparent)",
           }}
         >
-          {/* Top bar */}
           <div className="flex items-center justify-between">
             <Link
               to="/workout"
@@ -249,17 +276,15 @@ function LogPage() {
             <div className="w-10" />
           </div>
 
-          {/* Hero */}
           <div className="mt-3 text-center animate-fade-up">
             <div className="flex justify-center">
-              <SessionTimer startedAt={startedAtRef.current ?? Date.now()} />
+              <SessionTimer startedAt={startedAt ?? Date.now()} />
             </div>
             <div className="mt-1 text-xs italic text-muted-foreground">
               {subtitle}
             </div>
           </div>
 
-          {/* Live XP */}
           <div className="mt-4">
             <div className="mb-1.5 flex items-baseline justify-between">
               <div className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
@@ -274,7 +299,6 @@ function LogPage() {
             </div>
           </div>
 
-          {/* Cinematic LEVEL UP overlay */}
           {levelUpValue !== null && (
             <div className="pointer-events-none absolute inset-x-0 top-14 z-30 flex justify-center">
               <div
@@ -319,7 +343,7 @@ function LogPage() {
           )}
         </div>
 
-        {loadingExercises ? (
+        {loadingSession ? (
           <div className="mt-8 space-y-4">
             {[0, 1, 2].map((i) => (
               <div
@@ -342,7 +366,7 @@ function LogPage() {
           <div className="mt-6 space-y-4 pb-32">
             {entries.map((entry, ei) => (
               <div
-                key={entry.info.id}
+                key={entry.workoutExerciseId}
                 className="card-premium animate-fade-up rounded-2xl p-4"
                 style={{ animationDelay: `${ei * 60}ms` }}
               >
@@ -360,7 +384,7 @@ function LogPage() {
                     const key = `${ei}-${si}`;
                     return (
                       <SetRow
-                        key={si}
+                        key={s.id}
                         index={si}
                         set={s}
                         onChange={(patch) => updateSet(ei, si, patch)}
@@ -372,7 +396,7 @@ function LogPage() {
                 </div>
 
                 <button
-                  onClick={() => addSet(ei)}
+                  onClick={() => void addSet(ei)}
                   className="press mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground hover:border-primary/50 transition"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add set

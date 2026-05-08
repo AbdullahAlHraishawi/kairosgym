@@ -200,8 +200,8 @@ export function WorkoutContent() {
         )}
       </div>
 
-      {picked.length > 0 && (
-        <div className="animate-fade-up fixed bottom-20 left-1/2 z-30 w-full max-w-md -translate-x-1/2 px-5">
+      {picked.length > 0 ? (
+        <div className="sticky bottom-4 z-30 mt-6 animate-fade-up">
           <button
             onClick={start}
             className="press bg-primary text-primary-foreground shadow-glow flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-bold uppercase tracking-[0.2em]"
@@ -209,9 +209,7 @@ export function WorkoutContent() {
             Start workout · {picked.length} <ArrowRight className="h-4 w-4" />
           </button>
         </div>
-      )}
-
-      {picked.length === 0 && (
+      ) : (
         <Link
           to="/workout/log"
           onClick={() => {
