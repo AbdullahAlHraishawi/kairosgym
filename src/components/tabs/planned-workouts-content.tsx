@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Calendar, Dumbbell, Pencil, Play, Loader2 } from "lucide-react";
+import { Plus, Calendar, Dumbbell, Pencil, Play, Loader2, Settings2 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { listPlans, getPlan, dayDisplayName, type PlanSummary, type PlanFull } from "@/lib/plans";
@@ -128,13 +128,23 @@ export function PlannedWorkoutsContent() {
                     </span>
                   </div>
                   <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={() => void openStartSheet(p.id)}
-                      disabled={p.dayCount === 0}
-                      className="press bg-primary text-primary-foreground shadow-glow flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-[11px] font-black uppercase tracking-[0.2em] disabled:opacity-40"
-                    >
-                      <Play className="h-3.5 w-3.5" /> Start
-                    </button>
+                    {p.exerciseCount === 0 ? (
+                      <Link
+                        to="/workout/plans/$planId"
+                        params={{ planId: p.id }}
+                        className="press bg-primary text-primary-foreground shadow-glow flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-[11px] font-black uppercase tracking-[0.2em]"
+                      >
+                        <Settings2 className="h-3.5 w-3.5" /> Set up
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => void openStartSheet(p.id)}
+                        disabled={p.dayCount === 0}
+                        className="press bg-primary text-primary-foreground shadow-glow flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-[11px] font-black uppercase tracking-[0.2em] disabled:opacity-40"
+                      >
+                        <Play className="h-3.5 w-3.5" /> Start
+                      </button>
+                    )}
                     <Link
                       to="/workout/plans/$planId"
                       params={{ planId: p.id }}
@@ -179,22 +189,44 @@ export function PlannedWorkoutsContent() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               </div>
             )}
-            {startPlan?.days.map((d) => (
-              <button
-                key={d.id}
-                onClick={() => void launchDay(d.id)}
-                disabled={launching || d.exerciseCount === 0}
-                className="press bg-card flex w-full items-center justify-between gap-3 rounded-xl border border-border p-3 text-left disabled:opacity-40"
-              >
-                <div>
-                  <div className="text-sm font-bold">{dayDisplayName(d)}</div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {d.exerciseCount} {d.exerciseCount === 1 ? "exercise" : "exercises"}
+            {startPlan?.days.map((d) => {
+              const empty = d.exerciseCount === 0;
+              if (empty) {
+                return (
+                  <Link
+                    key={d.id}
+                    to="/workout/plans/$planId/day/$dayId"
+                    params={{ planId: startPlan.id, dayId: d.id }}
+                    onClick={() => setStartPlan(null)}
+                    className="press bg-card flex w-full items-center justify-between gap-3 rounded-xl border border-border p-3 text-left"
+                  >
+                    <div>
+                      <div className="text-sm font-bold">{dayDisplayName(d)}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Empty · tap to add exercises
+                      </div>
+                    </div>
+                    <Pencil className="h-4 w-4 text-primary" />
+                  </Link>
+                );
+              }
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => void launchDay(d.id)}
+                  disabled={launching}
+                  className="press bg-card flex w-full items-center justify-between gap-3 rounded-xl border border-border p-3 text-left disabled:opacity-40"
+                >
+                  <div>
+                    <div className="text-sm font-bold">{dayDisplayName(d)}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {d.exerciseCount} {d.exerciseCount === 1 ? "exercise" : "exercises"}
+                    </div>
                   </div>
-                </div>
-                <Play className="h-4 w-4 text-primary" />
-              </button>
-            ))}
+                  <Play className="h-4 w-4 text-primary" />
+                </button>
+              );
+            })}
           </div>
         </SheetContent>
       </Sheet>
